@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
 
         surfaceBlurView = BlurShaderView(this);
         surfaceBlurView.setSourceView(scrollView);
-        surfaceBlurView.scaleFactor = 0.25f;
+        surfaceBlurView.scaleFactor = 0.5f;
 
         val configurationInfo: ConfigurationInfo = (getSystemService(ACTIVITY_SERVICE) as ActivityManager).deviceConfigurationInfo;
 

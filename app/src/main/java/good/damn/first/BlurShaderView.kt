@@ -1,22 +1,28 @@
 package good.damn.first
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.opengl.GLSurfaceView
+import android.os.Handler
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import kotlin.math.log
+import java.io.File
+import java.io.FileOutputStream
 
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
-    private val TAG = "BlurShaderView"
+    private val TAG = "BlurShaderView";
     private val openGLRendererBlur = OpenGLRendererBlur();
 
-    private var mSourceView: View? = null;
+    private lateinit var mSourceView: View;
 
-    var scaleFactor: Float = 0.5f
+    private val mHandlerDelay: Handler = Handler();
+    private val mRunnableDelay: Runnable = Runnable {
+        mSourceView.viewTreeObserver.addOnDrawListener {
+            requestRender();
+        }
+    }
+
+    var scaleFactor: Float = 0.25f
         set(value) {
             field = value;
             openGLRendererBlur.mScaleFactor = scaleFactor;
@@ -33,24 +39,12 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
         mSourceView = sourceView;
         post {
             Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
-            sourceView.viewTreeObserver.addOnDrawListener {
-                requestRender();
-            }
+            mHandlerDelay.postDelayed(mRunnableDelay,2);
         }
     }
 
     override fun requestRender() {
-        if (mSourceView == null) {
-            Log.d(TAG, "requestRender: target view group is null. Request is missed.");
-            return;
-        };
-
-        mSourceView!!.isDrawingCacheEnabled = true;
-
-        openGLRendererBlur.generateBitmap(mSourceView!!.getDrawingCache());
-
-        mSourceView!!.isDrawingCacheEnabled = false;
-
+        openGLRendererBlur.generateBitmap(mSourceView);
         super.requestRender();
     }
 }

@@ -1,11 +1,13 @@
 package good.damn.first
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
 import android.view.View
+import com.google.android.material.resources.CancelableFontCallback
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -93,8 +95,10 @@ class OpenGLRendererBlur: GLSurfaceView.Renderer {
         return shader;
     }
 
-    fun generateBitmap(cache: Bitmap) {
-        mInputBitmap = Bitmap.createBitmap(cache,0,0,mWidth,mHeight);
+    fun generateBitmap(view: View) {
+        view.isDrawingCacheEnabled = true;
+        mInputBitmap = Bitmap.createBitmap(view.drawingCache,0,0,mWidth,mHeight);
+        view.isDrawingCacheEnabled = false;
     }
 
     override fun onSurfaceCreated(gl: GL10?, p1: EGLConfig?) {
