@@ -5,27 +5,22 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.opengl.GLSurfaceView
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import kotlin.math.log
 
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     private val TAG = "BlurShaderView"
-    private var targetViewGroup: ViewGroup? = null;
     private val openGLRendererBlur = OpenGLRendererBlur();
 
-    private var clippedWidth: Int = 1;
-    private var clippedHeight: Int = 1;
-    var scaleFactor: Float = 1.0f
-        set(value){
-            field = value;
-            if (field < 0.01f)
-                field = 1.0f;
+    private var mSourceView: View? = null;
 
-            clippedWidth = (width * field).toInt();
-            clippedHeight = (height * field).toInt();
-            openGLRendererBlur.scaleFactor = field;
-        };
+    var scaleFactor: Float = 0.5f
+        set(value) {
+            field = value;
+            openGLRendererBlur.mScaleFactor = scaleFactor;
+        }
 
     init {
         setEGLContextClientVersion(2);
@@ -33,35 +28,28 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
         renderMode = RENDERMODE_WHEN_DIRTY;
     }
 
-    fun setTargetViewGroup(targetViewGroup: ViewGroup){
-        this.targetViewGroup = targetViewGroup;
+
+    fun setSourceView(sourceView: View) {
+        mSourceView = sourceView;
         post {
             Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
-            scaleFactor = scaleFactor;
-            targetViewGroup.viewTreeObserver.addOnDrawListener {
+            sourceView.viewTreeObserver.addOnDrawListener {
                 requestRender();
             }
         }
     }
 
     override fun requestRender() {
-        if (targetViewGroup == null) {
+        if (mSourceView == null) {
             Log.d(TAG, "requestRender: target view group is null. Request is missed.");
             return;
         };
 
-        Log.d(TAG, "requestRender: $width $height $clippedWidth $clippedHeight")
+        mSourceView!!.isDrawingCacheEnabled = true;
 
-        targetViewGroup!!.isDrawingCacheEnabled = true;
-        val clippedBitmap =
-            Bitmap.createBitmap(targetViewGroup!!.drawingCache, 0,0, width,height);
-        targetViewGroup!!.isDrawingCacheEnabled = false;
+        openGLRendererBlur.generateBitmap(mSourceView!!.getDrawingCache());
 
-        openGLRendererBlur.setInputBitmap(Bitmap.createScaledBitmap(
-            clippedBitmap,
-            clippedWidth, clippedHeight, false
-        ));
-        clippedBitmap.recycle();
+        mSourceView!!.isDrawingCacheEnabled = false;
 
         super.requestRender();
     }

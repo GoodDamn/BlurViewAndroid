@@ -1,100 +1,36 @@
 package good.damn.first
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.opengl.GLES20
-import android.opengl.GLES32
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
-import android.os.CancellationSignal
-import android.os.Handler
 import android.util.Log
-import android.view.ViewGroup
-import androidx.core.graphics.applyCanvas
-import androidx.core.view.drawToBitmap
+import android.view.View
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.ShortBuffer
 import javax.microedition.khronos.egl.EGLConfig
-import javax.microedition.khronos.opengles.GL
 import javax.microedition.khronos.opengles.GL10
-import kotlin.io.path.fileVisitor
 
 class OpenGLRendererBlur: GLSurfaceView.Renderer {
-
-    /*
-        // Linear blur
-
-uniform sampler2D u_tex0;
-uniform vec2 u_tex0Resolution;
-
-uniform vec2 u_resolution;
-uniform vec2 u_mouse;
-uniform float u_time;
-
-void main () {
-    vec2 st = gl_FragCoord.xy/u_resolution.xy;
-    vec4 sum = vec4(0);
-
-    const int k = 4;
-    /*
-    int kernel[9];
-    kernel[0] = k-3;
-    kernel[1] = k-2;
-    kernel[2] = kernel[0];
-    kernel[3] = kernel[1];
-    kernel[4] = k;
-    kernel[5] = kernel[1];
-    kernel[6] = kernel[0];
-    kernel[7] = kernel[1];
-    kernel[8] = kernel[0];
-    */
-    int factor = 0;
-
-    const int kernelRadius = 7;
-	const int limit = kernelRadius-1;
-    const int from = 2 - kernelRadius;
-    for (int x = from; x < limit; x++) {
-            for (int y = from; y < limit; y++) {
-       			int kBlur = 1;//kernel[(x+1)*3+y+1];
-                factor += kBlur;
-                vec2 pos = (gl_FragCoord.xy + vec2(x,y)) * vec2(kBlur)/u_resolution;
-                sum += texture2D(u_tex0,pos);
-            }
-        }
-
-    gl_FragColor = sum/vec4(factor);
-}
-
-         second variant
-        vec2 normalized = gl_FragCoord.xy/u_res;" +
-            "const int kernelRadius = 6;" +
-            "const int limit = kernelRadius-1;" +
-            "const int from = 2 - kernelRadius;" +
-            "int factor = 0;"+
-            "for (int x = from; x < limit; x++) {" +
-                "for (int y = from; y < limit; y++) {" +
-                    "vec2 pos = (gl_FragCoord.xy + vec2(x,y))/u_res;" +
-                    "factor += 1;" +
-                    "sum += texture2D(u_tex,vec2(pos.x,1.0-pos.y));"
-                "}" +
-            "}" +
-            "gl_FragColor = sum/vec4(factor);"
-    *
-    * */
 
     private val TAG = "OpenGLRendererBlur";
     private val COORDINATES_PER_VERTEX = 3; // number of coords
     private val vertexOffset = COORDINATES_PER_VERTEX * 4; // (x,y,z) vertex per 4 bytes
 
-    private lateinit var inputBitmap: Bitmap;
+    private lateinit var mInputBitmap: Bitmap;
 
     private var positionHandle: Int = 0;
 
     private lateinit var vertexBuffer: FloatBuffer;
     private lateinit var drawListBuffer: ShortBuffer;
+
+    private var mOffsetX: Int = 5;
+    private var mOffsetY: Int = 5;
+
+    private var mWidth: Int = 1;
+    private var mHeight: Int = 1;
 
     private var program: Int = 0;
 
@@ -107,47 +43,48 @@ void main () {
         1.0f,1.0f,0.0f // top right
     );
 
-    private val vertexShaderCode: String =
-        "attribute vec4 position;" +
-                "void main(){" +
-                "   gl_Position = position;" +
-                "}"
-
-    private val fragmentShaderCode:String =
-        "precision mediump float;"+
-        "uniform int width;" +
-        "uniform int height;" +
-        "uniform float scaleFactor;"+
-        //"uniform float kernel[${kernel.size}];" +
-        "uniform sampler2D u_tex;" +
-        "void main () {" +
-            //"int wid = int(gl_FragCoord.x);" +
-            //"int hei = int(gl_FragCoord.y);" +
-            //"int kw = int(float(width) * scaleFactor);" +
-            //"int kh = int(float(height) * scaleFactor);" +
-            //"if (hei-hei/kh*kh == 0 && wid-wid/kw*kw == 0){" +
-                "vec4 sum = vec4(0);" +
-                "vec2 u_res = vec2(width,height);" +
-                "vec2 normalized = gl_FragCoord.xy/u_res;" +
-                "const int kernelRadius = 5;" +
-                "const int limit = kernelRadius-1;" +
-                "const int from = 2 - kernelRadius;" +
-                "int factor = 0;" +
-                "for (int x = from; x < limit; x++) {" +
-                    "for (int y = from; y < limit; y++) {" +
-                        "vec2 pos = (gl_FragCoord.xy * scaleFactor + vec2(x,y))/u_res;" +
-                        "factor += 1;" +
-                        "sum += texture2D(u_tex,vec2(pos.x,1.0-pos.y));" +
-                    "}" +
-                "}" +
-                "gl_FragColor = sum/vec4(factor);"+
-            //    "return;" +
-            //"}" +
-            //"gl_FragColor = texture2D(u_tex, gl_FragCoord.xy * scaleFactor);" +
-       "}"
-
     private val textureLocation = intArrayOf(1);
 
+    private val vertexShaderCode: String =
+        "attribute vec4 position;" +
+        "void main() {" +
+            "gl_Position = position;" +
+        "}";
+
+    private val fragmentShaderCode:String =
+        "precision mediump float;" +
+        "uniform int width;" +
+        "uniform int height;" +
+        "uniform int offsetX;" +
+        "uniform int offsetY;" +
+        "uniform sampler2D u_tex;" +
+        "int getPixelScaled(float ii, int add, int offset) {" +
+            "return (int(ii) / offset + add) * offset;" +
+        "}" +
+        "void main () {" +
+            "vec4 sum = vec4(0);" +
+            "vec2 u_res = vec2(width,height);" +
+            "vec2 coords = vec2(gl_FragCoord.x, u_res.y - gl_FragCoord.y);" +
+            "vec2 normalized = coords / u_res;" +
+            "const int kernelRadius = 8;" +
+            "for (int k = -kernelRadius; k <= kernelRadius; k++) {" +
+                "int x = getPixelScaled(coords.x, k, offsetX);" +
+                "int z = getPixelScaled(coords.y, k, offsetY);" +
+                "sum += texture2D(u_tex, vec2(x,getPixelScaled(coords.y,0,offsetY)) / u_res);" +
+                "sum += texture2D(u_tex, vec2(x,z) / u_res);" +
+                "sum += texture2D(u_tex, vec2(x,getPixelScaled(coords.y,k,offsetY)) / u_res);" +
+            "}" +
+            "gl_FragColor = sum / vec4(kernelRadius*6+3);" +
+            "return;" +
+        "}";
+
+    var mScaleFactor: Float = 1.0f
+        get() = field
+        set(value) {
+            field = value;
+            mOffsetX = (mWidth / (mWidth * value)).toInt();
+            mOffsetY = (mHeight / (mHeight * value)).toInt();
+        };
 
     private fun loadShader(type: Int, code:String):Int{
         val shader = GLES20.glCreateShader(type);
@@ -156,11 +93,9 @@ void main () {
         return shader;
     }
 
-    fun setInputBitmap(scaledBitmap: Bitmap) {
-        inputBitmap = scaledBitmap;
+    fun generateBitmap(cache: Bitmap) {
+        mInputBitmap = Bitmap.createBitmap(cache,0,0,mWidth,mHeight);
     }
-
-    var scaleFactor: Float = 1.0f;
 
     override fun onSurfaceCreated(gl: GL10?, p1: EGLConfig?) {
         gl?.glClearColor(1.0f,0.0f,1.0f,1.0f);
@@ -196,10 +131,14 @@ void main () {
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         Log.d(TAG, "onSurfaceChanged: $width $height");
         gl?.glViewport(0,0,width,height);
-        inputBitmap = Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888);
+        mWidth = width;
+        mHeight = height;
+
+        mInputBitmap = Bitmap.createBitmap(1,1, Bitmap.Config.ARGB_8888);
     }
 
     override fun onDrawFrame(gl: GL10?) {
+        // Config rectangular vertices
         gl?.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         positionHandle = GLES20.glGetAttribLocation(program,"position");
         GLES20.glEnableVertexAttribArray(positionHandle);
@@ -207,18 +146,18 @@ void main () {
 
         // Load texture
         GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"u_tex"),0);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,inputBitmap,0);
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,mInputBitmap,0);
         GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
-        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "width"),inputBitmap.width);
-        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "height"), inputBitmap.height);
-        GLES20.glUniform1f(GLES20.glGetUniformLocation(program, "scaleFactor"), scaleFactor);
 
-        //GLES20.glUniform1fv(GLES20.glGetUniformLocation(program, "kernel"),kernel.size,kernel,0);
+        // Load uniforms
+        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "width"),mWidth);
+        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "height"), mHeight);
+        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "offsetX"), mOffsetX);
+        GLES20.glUniform1i(GLES20.glGetUniformLocation(program, "offsetY"), mOffsetY);
 
         GLES20.glDrawElements(GLES20.GL_TRIANGLES,drawOrder.size, GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
         GLES20.glDisableVertexAttribArray(positionHandle);
-        Log.d(TAG, "onDrawFrame: ");
-
+        Log.d(TAG, "onDrawFrame: $mWidth $mHeight");
     }
 
 }

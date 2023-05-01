@@ -37,20 +37,20 @@ class BlurView(context: Context?) :
     private var pixelsX:Int = 1;
     private var pixelsY:Int = 1;
 
-    public var radius = 2.0f
+    var radius = 2.0f
         get() = field
         set(value) {
             field = value
             scriptIntrinsicBlur.setRadius(radius);
         };
 
-    public var scaleFactor:Int = 1
+    var scaleFactor:Int = 1
         get() = field
         set(value) {
             field = value
             val of: Float = 1.0f+scaleFactor/100;
             offsetX = width * of - width;
-            offsetY = height*of - height;
+            offsetY = height * of - height;
 
             pixelsX = measuredWidth/scaleFactor;
             pixelsY = measuredHeight/scaleFactor;

@@ -28,7 +28,6 @@ import kotlin.math.log
 class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity";
-    //private lateinit var blurView: BlurView;
     private lateinit var surfaceBlurView: BlurShaderView;
 
     @SuppressLint("SetTextI18n")
@@ -37,31 +36,23 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main);
 
         val rootLayout: FrameLayout = findViewById(R.id.mainActivity_rootFrameLayout);
-        //blurView = BlurView(context = this);
         val scrollView: ScrollView = rootLayout.getChildAt(0) as ScrollView;
 
         val contentLayout: LinearLayout = scrollView.getChildAt(0) as LinearLayout;
 
-        /*blurView.setOnClickListener{
-            if (blurView.radius >= 24) {
-                blurView.radius = 2.0f;
-            } else blurView.radius++;
-            Log.d(TAG, "onCreate: radius gaussian blur: "+blurView.radius);
-        };*/
-
-        val random:Random = Random();
+        val random = Random();
 
         surfaceBlurView = BlurShaderView(this);
-        surfaceBlurView.setTargetViewGroup(scrollView);
-        surfaceBlurView.scaleFactor = 0.12f;
+        surfaceBlurView.setSourceView(scrollView);
+        surfaceBlurView.scaleFactor = 0.25f;
 
         val configurationInfo: ConfigurationInfo = (getSystemService(ACTIVITY_SERVICE) as ActivityManager).deviceConfigurationInfo;
 
         Toast.makeText(this, configurationInfo.glEsVersion, Toast.LENGTH_LONG).show();
 
         for (i in 0..100) {
-            val button: Button = Button(this);
-            val textView: TextView = TextView(this);
+            val button = Button(this);
+            val textView = TextView(this);
             textView.text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n" +
                     "\n" +
                     "Why do we use it?\n" +
@@ -83,26 +74,14 @@ class MainActivity : AppCompatActivity() {
                 random.nextInt(100)+155,
                 random.nextInt(100)+155));
 
-            button.setOnClickListener {
-                /*if (blurView.scaleFactor >= 12) {
-                    blurView.scaleFactor = 2;
-                } else blurView.scaleFactor++;
-                Log.d(TAG, "onCreate: scaleFactor: " + blurView.scaleFactor);*/
-            };
             contentLayout.addView(textView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
             contentLayout.addView(button,FrameLayout.LayoutParams.MATCH_PARENT, 180);
         }
 
         Handler().postDelayed({
             rootLayout.addView(surfaceBlurView, FrameLayout.LayoutParams.MATCH_PARENT, 150);
-            //rootLayout.addView(blurView, FrameLayout.LayoutParams.MATCH_PARENT, 250);
         },1500);
 
-    }
-
-    override fun onStart() {
-        super.onStart();
-//        blurView.start();
     }
 
     override fun onResume() {
@@ -112,12 +91,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause();
-        //blurView.pause();
         surfaceBlurView.onPause();
     }
 
-    override fun onDestroy() {
-        super.onDestroy();
-        //blurView.destroy();
-    }
 }
