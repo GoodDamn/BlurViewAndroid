@@ -11,7 +11,7 @@ import java.io.FileOutputStream
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     private val TAG = "BlurShaderView";
-    private val openGLRendererBlur = OpenGLRendererBlur();
+    private var mBlurRenderer: OpenGLRendererBlur = OpenGLRendererBlur();
 
     private lateinit var mSourceView: View;
 
@@ -25,12 +25,12 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
     var scaleFactor: Float = 0.25f
         set(value) {
             field = value;
-            openGLRendererBlur.mScaleFactor = scaleFactor;
+            mBlurRenderer.mScaleFactor = scaleFactor;
         }
 
     init {
-        setEGLContextClientVersion(2);
-        setRenderer(openGLRendererBlur);
+        setEGLContextClientVersion(3);
+        setRenderer(mBlurRenderer);
         renderMode = RENDERMODE_WHEN_DIRTY;
     }
 
@@ -44,7 +44,10 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
     }
 
     override fun requestRender() {
-        openGLRendererBlur.generateBitmap(mSourceView);
+        mBlurRenderer.generateBitmap(mSourceView);
+        mBlurRenderer.setRenderWithMainBuffer(false);
+        super.requestRender();
+        mBlurRenderer.setRenderWithMainBuffer(true);
         super.requestRender();
     }
 }
