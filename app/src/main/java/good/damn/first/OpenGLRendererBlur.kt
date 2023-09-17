@@ -129,7 +129,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         // Config texture
 
         // Create frame buffer object
-        /*mBlurFrameBuffer = createFrameBuffer();
+        mBlurFrameBuffer = createFrameBuffer();
 
         // Create texture attachment
         mBlurTexture = createTextureAttachment(mWidth, mHeight);
@@ -138,7 +138,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         createDepthTextureAttachment(mWidth, mHeight);
 
         // Create depth(render) buffer attachment
-        mBlurDepthBuffer = createDepthBufferAttachment(mWidth, mHeight);*/
+        mBlurDepthBuffer = createDepthBufferAttachment(mWidth, mHeight);
 
         glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, mTempTexture,0);
