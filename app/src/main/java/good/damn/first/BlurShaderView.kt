@@ -45,9 +45,6 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     override fun requestRender() {
         mBlurRenderer.generateBitmap(mSourceView);
-        mBlurRenderer.setRenderWithMainBuffer(false);
-        super.requestRender();
-        mBlurRenderer.setRenderWithMainBuffer(true);
         super.requestRender();
     }
 }

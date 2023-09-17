@@ -59,7 +59,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     private lateinit var mBlurFrameBuffer: IntArray;
     private lateinit var mBlurDepthBuffer: IntArray;
 
-    private var mRendersWithMainBuffer = false;
+    private val mTempTexture = intArrayOf(1);
 
     //private val mTextureLocation = intArrayOf(1);
 
@@ -71,38 +71,12 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
     private val mFragmentShaderCode: String =
         "precision mediump float;" +
-                "uniform vec2 u_res;" +
-                "uniform int offsetX;" +
-                "uniform int offsetY;" +
-                "uniform sampler2D u_tex;" +
-                "float gauss(float inp, float aa, float stDevSQ) {" +
-                "return aa * exp(-(inp*inp)/stDevSQ);" +
-                "}" +
-                "int getPixelScaled(float ii, int add, int offset) {" +
-                "return (int(ii) / offset + add) * offset;" +
-                "}" +
-                "void main () {" +
-                "vec2 coords = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-                /*"float stDev = 8.0;" +
-                "float stDevSQ = 2.0 * stDev * stDev;" +
-                "float aa = 0.398 / stDev;" +
-                "const float rad = 8.0;" +
-                "vec4 sum = vec4(0.0);" +
-                "float normDistSum = 0.0;" +
-                "float gt;" +
-                "for (float i = -rad; i <= rad;i++) {" +
-                    "gt = gauss(i,aa,stDevSQ);" +
-                    "normDistSum += gt;" +
-                    "sum += texture2D(u_tex, vec2(coords.x+i,coords.y)/u_res) * gt;" +
-                "}" +
-                "for (float i = -rad; i <= rad;i++) {" +
-                    "gt = gauss(i,aa,stDevSQ);" +
-                    "normDistSum += gt;" +
-                    "sum += texture2D(u_tex, vec2(coords.x,coords.y+i)/u_res) * gt;" +
-                "}" +
-                "gl_FragColor = sum / vec4(normDistSum);"+*/
-                "gl_FragColor = texture2D(u_tex, coords / u_res);" +
-                "}";
+        "uniform vec2 u_res;" +
+        "uniform sampler2D u_tex;" +
+        "void main () {" +
+            "vec2 coords = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
+            "gl_FragColor = texture2D(u_tex, gl_FragCoord.xy / u_res);" +
+        "}";
 
     var mScaleFactor: Float = 1.0f
         set(value) {
@@ -127,7 +101,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     }
 
     override fun onSurfaceCreated(gl: GL10?, p1: EGLConfig?) {
-        gl?.glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+        gl?.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
         Log.d(TAG, "onSurfaceCreated: ");
 
         val byteBuffer: ByteBuffer =
@@ -155,7 +129,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         // Config texture
 
         // Create frame buffer object
-        mBlurFrameBuffer = createFrameBuffer();
+        /*mBlurFrameBuffer = createFrameBuffer();
 
         // Create texture attachment
         mBlurTexture = createTextureAttachment(mWidth, mHeight);
@@ -164,11 +138,11 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         createDepthTextureAttachment(mWidth, mHeight);
 
         // Create depth(render) buffer attachment
-        mBlurDepthBuffer = createDepthBufferAttachment(mWidth, mHeight);
+        mBlurDepthBuffer = createDepthBufferAttachment(mWidth, mHeight);*/
 
         glActiveTexture(GL_TEXTURE0);
-        glGenTextures(1, mBlurTexture,0);
-        glBindTexture(GL_TEXTURE_2D, mBlurTexture[0]);
+        glGenTextures(1, mTempTexture,0);
+        glBindTexture(GL_TEXTURE_2D, mTempTexture[0]);
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -182,10 +156,14 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         // Config rectangular vertices
-        if (!mRendersWithMainBuffer) {
-            bindBlurFrameBuffer();
-        }
         gl?.glClear(GL_COLOR_BUFFER_BIT);
+
+        // Load texture
+
+        glUniform1i(glGetUniformLocation(mProgram, "u_tex"), 0);
+        Log.d(TAG, "onDrawFrame: INPUT_BITMAP: ${mInputBitmap.width} ${mInputBitmap.height}")
+        GLUtils.texImage2D(GL_TEXTURE_2D, 0, mInputBitmap, 0);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
         positionHandle = glGetAttribLocation(mProgram, "position");
         glEnableVertexAttribArray(positionHandle);
@@ -197,25 +175,12 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
             vertexOffset,
             vertexBuffer
         );
-        // Load texture
-        glUniform1i(glGetUniformLocation(mProgram, "u_tex"), 0);
-        GLUtils.texImage2D(GL_TEXTURE_2D, 0, mInputBitmap, 0);
-        glGenerateMipmap(GL_TEXTURE_2D);
 
         // Load uniforms
         glUniform2f(glGetUniformLocation(mProgram, "u_res"), mWidth.toFloat(), mHeight.toFloat());
-        glUniform1i(glGetUniformLocation(mProgram, "offsetX"), mOffsetX);
-        glUniform1i(glGetUniformLocation(mProgram, "offsetY"), mOffsetY);
 
         glDrawElements(GL_TRIANGLES, mDrawOrder.size, GL_UNSIGNED_SHORT, drawListBuffer);
         glDisableVertexAttribArray(positionHandle);
-        if (!mRendersWithMainBuffer) {
-            unbindCurrentFramebuffer();
-        }
-    }
-
-    fun setRenderWithMainBuffer(a: Boolean) {
-        mRendersWithMainBuffer = a;
     }
 
     fun bindBlurFrameBuffer() {
@@ -236,7 +201,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     private fun bindFrameBuffer(frameBuffer: IntArray,
                                 width: Int,
                                 height: Int) {
-        glBindTexture(GL_TEXTURE_2D, 0); // make sure that texture isn't bound
+        //glBindTexture(GL_TEXTURE_2D, 0); // make sure that texture isn't bound
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer[0]);
         glViewport(0,0,height,width);
     }
