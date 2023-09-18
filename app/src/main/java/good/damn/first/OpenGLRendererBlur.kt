@@ -1,19 +1,12 @@
 package good.damn.first
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.hardware.display.DisplayManager
 import android.opengl.GLES20.*
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
-import android.view.Display
 import android.view.View
-import android.widget.ScrollView
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -69,22 +62,60 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "gl_Position = position;" +
                 "}"
 
-    private val mFragmentShaderCode =
+    private val mHBlurShaderCode =
         "precision mediump float;" +
-        "uniform vec2 u_res;" +
-        "uniform sampler2D u_tex;" +
-        "void main () {" +
-            "gl_FragColor = vec4(1.0)-texture2D(u_tex, gl_FragCoord.xy / u_res);" +
-        "}"
+                "uniform vec2 u_res;" +
+                "uniform sampler2D u_tex;" +
+                "float gauss(float inp, float aa, float stDevSQ) {" +
+                "return aa * exp(-(inp*inp)/stDevSQ);" +
+                "}" +
+                "void main () {" +
+                "float stDev = 8.0;" +
+                "float stDevSQ = 2.0 * stDev * stDev;" +
+                "float aa = 0.398 / stDev;" +
+                "const float rad = 3.0;" +
+                "vec4 sum = vec4(0.0);" +
+                "float normDistSum = 0.0;" +
+                "float gt;" +
+                "for (float i = -rad; i <= rad;i++) {" +
+                "gt = gauss(i,aa,stDevSQ);" +
+                "normDistSum += gt;" +
+                "sum += texture2D(u_tex, vec2(gl_FragCoord.x+i,gl_FragCoord.y)/u_res) * gt;" +
+                "}" +
+                "gl_FragColor = sum / vec4(normDistSum);" +
+                "}"
+
+    private val mVBlurShaderCode =
+        "precision mediump float;" +
+                "uniform vec2 u_res;" +
+                "uniform sampler2D u_tex;" +
+                "float gauss(float inp, float aa, float stDevSQ) {" +
+                "return aa * exp(-(inp*inp)/stDevSQ);" +
+                "}" +
+                "void main () {" +
+                "float stDev = 8.0;" +
+                "float stDevSQ = 2.0 * stDev * stDev;" +
+                "float aa = 0.398 / stDev;" +
+                "const float rad = 3.0;" +
+                "vec4 sum = vec4(0.0);" +
+                "float normDistSum = 0.0;" +
+                "float gt;" +
+                "for (float i = -rad; i <= rad;i++) {" +
+                "gt = gauss(i,aa,stDevSQ);" +
+                "normDistSum += gt;" +
+                "sum += texture2D(u_tex, vec2(gl_FragCoord.x,gl_FragCoord.y+i)/u_res) * gt;" +
+                "}" +
+                "gl_FragColor = sum / vec4(normDistSum);" +
+                "}"
 
     private val mPPShaderCode =
         "precision mediump float;" +
-        "uniform vec2 u_res;" +
-        "uniform sampler2D u_tex;" +
-        "void main () {" +
-            "vec2 coords = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-            "gl_FragColor = texture2D(u_tex, coords.xy / u_res);" +
-        "}"
+                "uniform vec2 u_res;" +
+                "uniform sampler2D u_tex;" +
+                "void main () {" +
+                "vec2 coords = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
+                "gl_FragColor = texture2D(u_tex, coords.xy / u_res);" +
+                "}"
 
     var mScaleFactor = 1.0f
         set(value) {
@@ -128,7 +159,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
         mProgram = glCreateProgram()
         glAttachShader(mProgram, loadShader(GL_VERTEX_SHADER, mVertexShaderCode))
-        glAttachShader(mProgram, loadShader(GL_FRAGMENT_SHADER, mFragmentShaderCode))
+        glAttachShader(mProgram, loadShader(GL_FRAGMENT_SHADER, mHBlurShaderCode))
         glLinkProgram(mProgram)
 
         mPPProgram = glCreateProgram()
@@ -138,7 +169,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
         glUseProgram(mProgram)
 
-        // Config texture
+// Config texture
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -153,9 +184,9 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         mBlurTexture = intArrayOf(1)
         mBlurDepthBuffer = intArrayOf(1)
 
-        glGenFramebuffers(1,mBlurFrameBuffer,0)
-        glGenRenderbuffers(1,mBlurDepthBuffer,0)
-        glGenTextures(1,mBlurTexture, 0)
+        glGenFramebuffers(1, mBlurFrameBuffer, 0)
+        glGenRenderbuffers(1, mBlurDepthBuffer, 0)
+        glGenTextures(1, mBlurTexture, 0)
 
         glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -168,50 +199,56 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         mTexBuffer = ByteBuffer.allocateDirect(buf.size * Float.SIZE_BYTES)
             .order(ByteOrder.nativeOrder()).asIntBuffer()
 
-        glTexImage2D(GL_TEXTURE_2D,
+        glTexImage2D(
+            GL_TEXTURE_2D,
             0, GL_RGB, mWidth, mHeight, 0,
-            GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mTexBuffer)
+            GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mTexBuffer
+        )
 
         glBindRenderbuffer(GL_RENDERBUFFER, mBlurDepthBuffer[0])
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, mWidth,mHeight)
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, mWidth, mHeight)
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        // Config rectangular vertices
+// Config rectangular vertices
         gl?.glClear(GL_COLOR_BUFFER_BIT)
 
-        //glActiveTexture(GL_TEXTURE0)
-        //glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
+//glActiveTexture(GL_TEXTURE0)
+//glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
         renderTexture()
 
         renderPostProcess()
     }
 
     private fun renderTexture() {
-        //bindBlurFrameBuffer()
+//bindBlurFrameBuffer()
         glUseProgram(mProgram)
 
-        glViewport(0,0,mWidth,mHeight)
+        glViewport(0, 0, mWidth, mHeight)
 
         glBindFramebuffer(GL_FRAMEBUFFER, mBlurFrameBuffer[0])
 
-        glFramebufferTexture2D(GL_FRAMEBUFFER,
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_TEXTURE_2D,
             mBlurTexture[0],
-            0)
+            0
+        )
 
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+        glFramebufferRenderbuffer(
+            GL_FRAMEBUFFER,
             GL_DEPTH_ATTACHMENT,
             GL_RENDERBUFFER,
-            mBlurDepthBuffer[0])
+            mBlurDepthBuffer[0]
+        )
 
         val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
         if (status != GL_FRAMEBUFFER_COMPLETE) {
             return
         }
 
-        glClearColor(1f,0f,0f,1f)
+        glClearColor(1f, 0f, 0f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
         GLUtils.texImage2D(GL_TEXTURE_2D, 0, mInputBitmap, 0)
@@ -232,7 +269,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
         glUniform1i(glGetUniformLocation(mProgram, "u_tex"), 0)
 
-        // Load uniforms
+// Load uniforms
         glUniform2f(
             glGetUniformLocation(mProgram, "u_res"),
             mWidth.toFloat(),
@@ -247,7 +284,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         glBindFramebuffer(GL_FRAMEBUFFER, 0) // default fbo
 
         glUseProgram(mPPProgram)
-        glClearColor(1f,0f,0f,1f)
+        glClearColor(1f, 0f, 0f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
         val positionHandle = glGetAttribLocation(mPPProgram, "position")
@@ -258,22 +295,26 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
             GL_FLOAT,
             false,
             vertexOffset,
-            vertexBuffer)
+            vertexBuffer
+        )
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
         glUniform1i(glGetUniformLocation(mPPProgram, "u_tex"), 0)
 
-        // Load uniforms
+// Load uniforms
         glUniform2f(
             glGetUniformLocation(mPPProgram, "u_res"),
             mWidth.toFloat(),
-            mHeight.toFloat())
+            mHeight.toFloat()
+        )
 
-        glDrawElements(GL_TRIANGLES,
+        glDrawElements(
+            GL_TRIANGLES,
             mDrawOrder.size,
             GL_UNSIGNED_SHORT,
-            drawListBuffer)
+            drawListBuffer
+        )
         glDisableVertexAttribArray(positionHandle)
     }
 
