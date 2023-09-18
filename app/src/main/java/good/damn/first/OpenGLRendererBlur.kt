@@ -34,8 +34,8 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     private var mWidth = 1
     private var mHeight = 1
 
-    private var mPPProgram = 0
-    private var mProgram = 0
+    private var mVBlurProgram = 0
+    private var mHBlurProgram = 0
 
     private val mDrawOrder: ShortArray = shortArrayOf(0, 1, 2, 0, 2, 3)
 
@@ -73,7 +73,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "float stDev = 8.0;" +
                 "float stDevSQ = 2.0 * stDev * stDev;" +
                 "float aa = 0.398 / stDev;" +
-                "const float rad = 3.0;" +
+                "const float rad = 7.0;" +
                 "vec4 sum = vec4(0.0);" +
                 "float normDistSum = 0.0;" +
                 "float gt;" +
@@ -96,25 +96,17 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "float stDev = 8.0;" +
                 "float stDevSQ = 2.0 * stDev * stDev;" +
                 "float aa = 0.398 / stDev;" +
-                "const float rad = 3.0;" +
+                "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
+                "const float rad = 7.0;" +
                 "vec4 sum = vec4(0.0);" +
                 "float normDistSum = 0.0;" +
                 "float gt;" +
                 "for (float i = -rad; i <= rad;i++) {" +
                 "gt = gauss(i,aa,stDevSQ);" +
                 "normDistSum += gt;" +
-                "sum += texture2D(u_tex, vec2(gl_FragCoord.x,gl_FragCoord.y+i)/u_res) * gt;" +
+                "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
                 "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
-                "}"
-
-    private val mPPShaderCode =
-        "precision mediump float;" +
-                "uniform vec2 u_res;" +
-                "uniform sampler2D u_tex;" +
-                "void main () {" +
-                "vec2 coords = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-                "gl_FragColor = texture2D(u_tex, coords.xy / u_res);" +
                 "}"
 
     var mScaleFactor = 1.0f
@@ -157,19 +149,17 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         drawListBuffer.put(mDrawOrder)
         drawListBuffer.position(0)
 
-        mProgram = glCreateProgram()
-        glAttachShader(mProgram, loadShader(GL_VERTEX_SHADER, mVertexShaderCode))
-        glAttachShader(mProgram, loadShader(GL_FRAGMENT_SHADER, mHBlurShaderCode))
-        glLinkProgram(mProgram)
+        mHBlurProgram = glCreateProgram()
+        glAttachShader(mHBlurProgram, loadShader(GL_VERTEX_SHADER, mVertexShaderCode))
+        glAttachShader(mHBlurProgram, loadShader(GL_FRAGMENT_SHADER, mHBlurShaderCode))
+        glLinkProgram(mHBlurProgram)
 
-        mPPProgram = glCreateProgram()
-        glAttachShader(mPPProgram, loadShader(GL_VERTEX_SHADER, mVertexShaderCode))
-        glAttachShader(mPPProgram, loadShader(GL_FRAGMENT_SHADER, mPPShaderCode))
-        glLinkProgram(mPPProgram)
+        mVBlurProgram = glCreateProgram()
+        glAttachShader(mVBlurProgram, loadShader(GL_VERTEX_SHADER, mVertexShaderCode))
+        glAttachShader(mVBlurProgram, loadShader(GL_FRAGMENT_SHADER, mVBlurShaderCode))
+        glLinkProgram(mVBlurProgram)
 
-        glUseProgram(mProgram)
-
-// Config texture
+        glUseProgram(mHBlurProgram)
     }
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -210,19 +200,20 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
-// Config rectangular vertices
         gl?.glClear(GL_COLOR_BUFFER_BIT)
+        if (setFBO()) {
+            return
+        }
+        GLUtils.texImage2D(GL_TEXTURE_2D, 0, mInputBitmap, 0)
+        glGenerateMipmap(GL_TEXTURE_2D)
 
-//glActiveTexture(GL_TEXTURE0)
-//glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
-        renderTexture()
+        glUseProgram(mHBlurProgram)
+        renderBlur(mHBlurProgram)
 
         renderPostProcess()
     }
 
-    private fun renderTexture() {
-//bindBlurFrameBuffer()
-        glUseProgram(mProgram)
+    private fun setFBO(): Boolean {
 
         glViewport(0, 0, mWidth, mHeight)
 
@@ -233,28 +224,22 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
             GL_COLOR_ATTACHMENT0,
             GL_TEXTURE_2D,
             mBlurTexture[0],
-            0
-        )
+            0)
 
         glFramebufferRenderbuffer(
             GL_FRAMEBUFFER,
             GL_DEPTH_ATTACHMENT,
             GL_RENDERBUFFER,
-            mBlurDepthBuffer[0]
-        )
+            mBlurDepthBuffer[0])
 
-        val status = glCheckFramebufferStatus(GL_FRAMEBUFFER)
-        if (status != GL_FRAMEBUFFER_COMPLETE) {
-            return
-        }
+        return glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE
+    }
 
+    private fun renderBlur(program: Int) {
         glClearColor(1f, 0f, 0f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
-        GLUtils.texImage2D(GL_TEXTURE_2D, 0, mInputBitmap, 0)
-        glGenerateMipmap(GL_TEXTURE_2D)
-
-        val positionHandle = glGetAttribLocation(mProgram, "position")
+        val positionHandle = glGetAttribLocation(program, "position")
         glEnableVertexAttribArray(positionHandle)
         glVertexAttribPointer(
             positionHandle,
@@ -267,11 +252,10 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
-        glUniform1i(glGetUniformLocation(mProgram, "u_tex"), 0)
+        glUniform1i(glGetUniformLocation(program, "u_tex"), 0)
 
-// Load uniforms
         glUniform2f(
-            glGetUniformLocation(mProgram, "u_res"),
+            glGetUniformLocation(program, "u_res"),
             mWidth.toFloat(),
             mHeight.toFloat()
         )
@@ -283,11 +267,12 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     private fun renderPostProcess() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0) // default fbo
 
-        glUseProgram(mPPProgram)
+        glUseProgram(mVBlurProgram)
+        //glViewport(0,0,mWidth,mHeight)
         glClearColor(1f, 0f, 0f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
-        val positionHandle = glGetAttribLocation(mPPProgram, "position")
+        val positionHandle = glGetAttribLocation(mVBlurProgram, "position")
         glEnableVertexAttribArray(positionHandle)
         glVertexAttribPointer(
             positionHandle,
@@ -300,11 +285,10 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
-        glUniform1i(glGetUniformLocation(mPPProgram, "u_tex"), 0)
+        glUniform1i(glGetUniformLocation(mVBlurProgram, "u_tex"), 0)
 
-// Load uniforms
         glUniform2f(
-            glGetUniformLocation(mPPProgram, "u_res"),
+            glGetUniformLocation(mVBlurProgram, "u_res"),
             mWidth.toFloat(),
             mHeight.toFloat()
         )
