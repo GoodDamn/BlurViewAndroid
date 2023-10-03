@@ -22,18 +22,11 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
         }
     }
 
-    var scaleFactor: Float = 0.25f
-        set(value) {
-            field = value;
-            mBlurRenderer.mScaleFactor = scaleFactor;
-        }
-
     init {
-        setEGLContextClientVersion(3);
+        setEGLContextClientVersion(2);
         setRenderer(mBlurRenderer);
         renderMode = RENDERMODE_WHEN_DIRTY;
     }
-
 
     fun setSourceView(sourceView: View) {
         mSourceView = sourceView;
