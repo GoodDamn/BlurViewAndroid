@@ -63,6 +63,11 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "float gauss(float inp, float aa, float stDevSQ) {" +
                 "return aa * exp(-(inp*inp)/stDevSQ);" +
                 "}" +
+                "vec2 downScale(float scale, vec2 inp) {" +
+                    "vec2 scRes = u_res * scale;" +
+                    "vec2 r = inp / scRes;" +
+                    "return vec2(float(int(r.x))*scRes.x, float(int(r.y))*scRes.y);" +
+                "}" +
                 "void main () {" +
                 "float stDev = 8.0;" +
                 "float stDevSQ = 2.0 * stDev * stDev;" +
@@ -73,9 +78,9 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "float normDistSum = 0.0;" +
                 "float gt;" +
                 "for (float i = -rad; i <= rad;i++) {" +
-                "gt = gauss(i,aa,stDevSQ);" +
-                "normDistSum += gt;" +
-                "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
+                    "gt = gauss(i,aa,stDevSQ);" +
+                    "normDistSum += gt;" +
+                    "sum += texture2D(u_tex, downScale(0.005,vec2(crs.x,crs.y+i))/u_res) * gt;" +
                 "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
@@ -85,22 +90,27 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "uniform vec2 u_res;" +
                 "uniform sampler2D u_tex;" +
                 "float gauss(float inp, float aa, float stDevSQ) {" +
-                "return aa * exp(-(inp*inp)/stDevSQ);" +
+                    "return aa * exp(-(inp*inp)/stDevSQ);" +
+                "}" +
+                "vec2 downScale(float scale, vec2 inp) {" +
+                    "vec2 scRes = u_res * scale;" +
+                    "vec2 r = inp / scRes;" +
+                    "return vec2(float(int(r.x))*scRes.x, float(int(r.y))*scRes.y);" +
                 "}" +
                 "void main () {" +
-                "float stDev = 8.0;" +
-                "float stDevSQ = 2.0 * stDev * stDev;" +
-                "float aa = 0.398 / stDev;" +
-                "const float rad = 7.0;" +
-                "vec4 sum = vec4(0.0);" +
-                "float normDistSum = 0.0;" +
-                "float gt;" +
-                "for (float i = -rad; i <= rad;i++) {" +
-                "gt = gauss(i,aa,stDevSQ);" +
-                "normDistSum += gt;" +
-                "sum += texture2D(u_tex, vec2(gl_FragCoord.x+i,gl_FragCoord.y)/u_res) * gt;" +
-                "}" +
-                "gl_FragColor = sum / vec4(normDistSum);" +
+                    "float stDev = 8.0;" +
+                    "float stDevSQ = 2.0 * stDev * stDev;" +
+                    "float aa = 0.398 / stDev;" +
+                    "const float rad = 7.0;" +
+                    "vec4 sum = vec4(0.0);" +
+                    "float normDistSum = 0.0;" +
+                    "float gt;" +
+                    "for (float i = -rad; i <= rad;i++) {" +
+                        "gt = gauss(i,aa,stDevSQ);" +
+                        "normDistSum += gt;" +
+                        "sum += texture2D(u_tex, downScale(0.005,vec2(gl_FragCoord.x+i,gl_FragCoord.y))/u_res) * gt;" +
+                    "}" +
+                    "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
 
     fun generateBitmap(view: View) {
@@ -190,6 +200,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
             mWidth,
             mHeight
         )
+
     }
 
     override fun onDrawFrame(gl: GL10?) {
