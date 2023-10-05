@@ -8,6 +8,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import android.util.Log
 import android.view.View
+import androidx.annotation.NonNull
 import good.damn.first.opengl.OpenGLUtils
 import good.damn.first.opengl.OpenGLUtils.Companion.loadShader
 import java.nio.ByteBuffer
@@ -21,6 +22,9 @@ import kotlin.math.log
 class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
     private val TAG = "OpenGLRendererBlur"
+
+    var mOnFrameCompleteListener: Runnable? = null
+
     private val mCOORDINATES_PER_VERTEX = 3 // number of coords
     private val mVertexOffset = mCOORDINATES_PER_VERTEX * 4 // (x,y,z) vertex per 4 bytes
 
@@ -80,7 +84,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "for (float i = -rad; i <= rad;i++) {" +
                     "gt = gauss(i,aa,stDevSQ);" +
                     "normDistSum += gt;" +
-                    "sum += texture2D(u_tex, downScale(0.005,vec2(crs.x,crs.y+i))/u_res) * gt;" +
+                    "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
                 "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
@@ -91,11 +95,6 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                 "uniform sampler2D u_tex;" +
                 "float gauss(float inp, float aa, float stDevSQ) {" +
                     "return aa * exp(-(inp*inp)/stDevSQ);" +
-                "}" +
-                "vec2 downScale(float scale, vec2 inp) {" +
-                    "vec2 scRes = u_res * scale;" +
-                    "vec2 r = inp / scRes;" +
-                    "return vec2(float(int(r.x))*scRes.x, float(int(r.y))*scRes.y);" +
                 "}" +
                 "void main () {" +
                     "float stDev = 8.0;" +
@@ -108,7 +107,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                     "for (float i = -rad; i <= rad;i++) {" +
                         "gt = gauss(i,aa,stDevSQ);" +
                         "normDistSum += gt;" +
-                        "sum += texture2D(u_tex, downScale(0.005,vec2(gl_FragCoord.x+i,gl_FragCoord.y))/u_res) * gt;" +
+                        "sum += texture2D(u_tex, vec2(gl_FragCoord.x+i,gl_FragCoord.y)/u_res) * gt;" +
                     "}" +
                     "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
@@ -207,6 +206,7 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         gl?.glClear(GL_COLOR_BUFFER_BIT)
         renderHorizontalBlur()
         renderPostProcess()
+        mOnFrameCompleteListener?.run()
     }
 
     private fun renderHorizontalBlur() {
@@ -308,9 +308,9 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
         glDisableVertexAttribArray(positionHandle)
     }
 
-    /*private fun clean() {
+    private fun clean() {
         glDeleteFramebuffers(1, mBlurFrameBuffer, 0)
         glDeleteTextures(1, mBlurTexture, 0)
         glDeleteRenderbuffers(1, mBlurDepthBuffer, 0)
-    }*/
+    }
 }
