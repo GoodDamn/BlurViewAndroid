@@ -2,57 +2,52 @@ package good.damn.first
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
-import android.content.Context
 import android.content.pm.ConfigurationInfo
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
-import android.view.Menu
-import android.view.MenuItem
-import android.view.SurfaceView
-import android.view.ViewTreeObserver
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import good.damn.first.databinding.ActivityMainBinding
 import java.util.Random
-import kotlin.math.log
 
 class MainActivity : AppCompatActivity() {
 
     private val TAG = "MainActivity";
-    private lateinit var surfaceBlurView: BlurShaderView;
+    private lateinit var mSurfaceBlurView: BlurShaderView;
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        val rootLayout: FrameLayout = findViewById(R.id.mainActivity_rootFrameLayout);
-        val scrollView: ScrollView = rootLayout.getChildAt(0) as ScrollView;
+        val rootLayout = findViewById<FrameLayout>(R.id.mainActivity_rootFrameLayout);
+        val scrollView = rootLayout.getChildAt(0) as ScrollView;
 
-        val contentLayout: LinearLayout = scrollView.getChildAt(0) as LinearLayout;
+        val contentLayout = scrollView.getChildAt(0) as LinearLayout;
 
         val random = Random();
 
-        surfaceBlurView = BlurShaderView(this);
-        surfaceBlurView.setSourceView(scrollView);
+        mSurfaceBlurView = BlurShaderView(this)
+        mSurfaceBlurView.setSourceView(scrollView)
 
-        val configurationInfo: ConfigurationInfo = (getSystemService(ACTIVITY_SERVICE) as ActivityManager).deviceConfigurationInfo;
+        val configurationInfo: ConfigurationInfo =
+            (getSystemService(ACTIVITY_SERVICE) as ActivityManager)
+            .deviceConfigurationInfo;
 
-        Toast.makeText(this, configurationInfo.glEsVersion, Toast.LENGTH_LONG).show();
+        Toast.makeText(
+            this,
+            configurationInfo.glEsVersion,
+            Toast.LENGTH_LONG)
+            .show();
 
-        for (i in 0..4) {
+        for (i in 0..10) {
             val button = Button(this);
             val textView = TextView(this);
             textView.text = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n" +
@@ -80,20 +75,20 @@ class MainActivity : AppCompatActivity() {
             contentLayout.addView(button,FrameLayout.LayoutParams.MATCH_PARENT, 180);
         }
 
-        Handler().postDelayed({
-            rootLayout.addView(surfaceBlurView, FrameLayout.LayoutParams.MATCH_PARENT, 150);
+        Handler(Looper.getMainLooper()).postDelayed({
+            rootLayout.addView(mSurfaceBlurView, FrameLayout.LayoutParams.MATCH_PARENT, 150);
         },1500);
 
     }
 
     override fun onResume() {
+        mSurfaceBlurView.onResume()
         super.onResume()
-        surfaceBlurView.onResume();
     }
 
     override fun onPause() {
-        super.onPause();
-        surfaceBlurView.onPause();
+        mSurfaceBlurView.onPause()
+        super.onPause()
     }
 
 }

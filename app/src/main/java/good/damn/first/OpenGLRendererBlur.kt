@@ -19,7 +19,7 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.log
 
-class OpenGLRendererBlur : GLSurfaceView.Renderer {
+class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
 
     private val TAG = "OpenGLRendererBlur"
 
@@ -36,6 +36,8 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
     private lateinit var mBlurDepthBuffer: IntArray
     private lateinit var mBlurTexture: IntArray
     private lateinit var mBlurFrameBuffer: IntArray
+
+    private lateinit var mTargetView: View;
 
     private val mCanvas = Canvas()
 
@@ -112,11 +114,8 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
                     "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
 
-    fun generateBitmap(view: View) {
-        mInputBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888)
-        mCanvas.setBitmap(mInputBitmap)
-        mCanvas.translate(0f, -view.scrollY.toFloat())
-        view.draw(mCanvas)
+    init {
+        mTargetView = targetView
     }
 
     override fun onSurfaceCreated(gl: GL10?, p1: EGLConfig?) {
@@ -204,9 +203,17 @@ class OpenGLRendererBlur : GLSurfaceView.Renderer {
 
     override fun onDrawFrame(gl: GL10?) {
         gl?.glClear(GL_COLOR_BUFFER_BIT)
+        generateBitmap()
         renderHorizontalBlur()
         renderPostProcess()
         mOnFrameCompleteListener?.run()
+    }
+
+    private fun generateBitmap() {
+        mInputBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888)
+        mCanvas.setBitmap(mInputBitmap)
+        mCanvas.translate(0f, -mTargetView.scrollY.toFloat())
+        mTargetView.draw(mCanvas)
     }
 
     private fun renderHorizontalBlur() {
