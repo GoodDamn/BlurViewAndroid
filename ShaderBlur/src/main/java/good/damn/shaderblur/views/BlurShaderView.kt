@@ -1,4 +1,4 @@
-package good.damn.first
+package good.damn.shaderblur.views
 
 import android.content.Context
 import android.opengl.GLSurfaceView
@@ -6,9 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
+import good.damn.shaderblur.opengl.OpenGLRendererBlur
 import kotlinx.coroutines.Runnable
-import java.io.File
-import java.io.FileOutputStream
 
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
