@@ -3,48 +3,41 @@ package good.damn.first
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
+import kotlinx.coroutines.Runnable
 import java.io.File
 import java.io.FileOutputStream
 
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     private val TAG = "BlurShaderView";
-    private var mBlurRenderer: OpenGLRendererBlur = OpenGLRendererBlur();
+    private var mBlurRenderer: OpenGLRendererBlur? = null;
 
-    private lateinit var mSourceView: View;
+    private lateinit var mSourceView: View
 
-    private val mHandlerDelay: Handler = Handler();
-    private val mRunnableDelay: Runnable = Runnable {
+    private val mHandlerDelay = Handler(Looper.getMainLooper())
+
+    private val mRunRequestRender = Runnable {
         mSourceView.viewTreeObserver.addOnDrawListener {
-            requestRender();
+            requestRender()
         }
+        /*mBlurRenderer.mOnFrameCompleteListener = Runnable {
+            requestRender()
+        }*/
     }
-
-    var scaleFactor: Float = 0.25f
-        set(value) {
-            field = value;
-            mBlurRenderer.mScaleFactor = scaleFactor;
-        }
-
-    init {
-        setEGLContextClientVersion(3);
-        setRenderer(mBlurRenderer);
-        renderMode = RENDERMODE_WHEN_DIRTY;
-    }
-
 
     fun setSourceView(sourceView: View) {
         mSourceView = sourceView;
+        mBlurRenderer = OpenGLRendererBlur(mSourceView)
+        setEGLContextClientVersion(2)
+        setRenderer(mBlurRenderer)
+        renderMode = RENDERMODE_WHEN_DIRTY
+
         post {
             Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
-            mHandlerDelay.postDelayed(mRunnableDelay,2);
+            mHandlerDelay.postDelayed(mRunRequestRender,2);
         }
-    }
-
-    override fun requestRender() {
-        mBlurRenderer.generateBitmap(mSourceView);
-        super.requestRender();
     }
 }
