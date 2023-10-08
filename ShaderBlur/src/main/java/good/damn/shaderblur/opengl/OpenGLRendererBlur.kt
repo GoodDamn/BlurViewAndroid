@@ -1,4 +1,4 @@
-package good.damn.first
+package good.damn.shaderblur.opengl
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -9,8 +9,7 @@ import android.opengl.GLUtils
 import android.util.Log
 import android.view.View
 import androidx.annotation.NonNull
-import good.damn.first.opengl.OpenGLUtils
-import good.damn.first.opengl.OpenGLUtils.Companion.loadShader
+import good.damn.shaderblur.opengl.OpenGLUtils.Companion.loadShader
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
