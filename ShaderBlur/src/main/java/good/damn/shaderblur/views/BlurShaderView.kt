@@ -22,9 +22,6 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
         mSourceView.viewTreeObserver.addOnDrawListener {
             requestRender()
         }
-        /*mBlurRenderer.mOnFrameCompleteListener = Runnable {
-            requestRender()
-        }*/
     }
 
     fun setSourceView(sourceView: View) {
@@ -38,5 +35,9 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
             Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
             mHandlerDelay.postDelayed(mRunRequestRender,2);
         }
+    }
+
+    fun clean() {
+        mBlurRenderer?.clean()
     }
 }

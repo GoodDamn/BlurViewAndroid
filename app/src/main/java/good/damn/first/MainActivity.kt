@@ -81,6 +81,11 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        mSurfaceBlurView.clean()
+    }
+
     override fun onResume() {
         mSurfaceBlurView.onResume()
         super.onResume()
