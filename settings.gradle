@@ -13,6 +13,6 @@ dependencyResolutionManagement {
         maven {url 'https://jitpack.io'}
     }
 }
-rootProject.name = "First"
+rootProject.name = "ShaderBlur"
 include ':app'
 include ':ShaderBlur'
