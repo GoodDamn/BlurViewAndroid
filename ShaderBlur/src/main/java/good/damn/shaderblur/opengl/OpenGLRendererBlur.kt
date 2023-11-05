@@ -25,18 +25,21 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
     private val mCOORDINATES_PER_VERTEX = 3 // number of coords
     private val mVertexOffset = mCOORDINATES_PER_VERTEX * 4 // (x,y,z) vertex per 4 bytes
 
-    private lateinit var mInputBitmap: Bitmap
+    private var mInputBitmap: Bitmap? = null
 
     private lateinit var mVertexBuffer: FloatBuffer
     private lateinit var mDrawListBuffer: ShortBuffer
 
-    private lateinit var mBlurDepthBuffer: IntArray
-    private lateinit var mBlurTexture: IntArray
-    private lateinit var mBlurFrameBuffer: IntArray
+    private var mBlurDepthBuffer: IntArray? = null
+    private var mBlurTexture: IntArray? = null
+    private var mBlurFrameBuffer: IntArray? = null
 
-    private lateinit var mTargetView: View;
+    private var mTargetView: View;
 
     private val mCanvas = Canvas()
+
+    private var mClipWidth = 1
+    private var mClipHeight = 1
 
     private var mWidth = 1
     private var mHeight = 1
@@ -55,42 +58,43 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
 
     private val mVertexShaderCode =
         "attribute vec4 position;" +
-                "void main() {" +
-                "gl_Position = position;" +
-                "}"
+        "void main() {" +
+            "gl_Position = position;" +
+        "}"
 
     private val mVBlurShaderCode =
         "precision mediump float;" +
-                "uniform vec2 u_res;" +
-                "uniform sampler2D u_tex;" +
-                "float gauss(float inp, float aa, float stDevSQ) {" +
-                "return aa * exp(-(inp*inp)/stDevSQ);" +
-                "}" +
-                "vec2 downScale(float scale, vec2 inp) {" +
-                    "vec2 scRes = u_res * scale;" +
-                    "vec2 r = inp / scRes;" +
-                    "return vec2(float(int(r.x))*scRes.x, float(int(r.y))*scRes.y);" +
-                "}" +
-                "void main () {" +
-                "float stDev = 8.0;" +
-                "float stDevSQ = 2.0 * stDev * stDev;" +
-                "float aa = 0.398 / stDev;" +
-                "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-                "const float rad = 7.0;" +
-                "vec4 sum = vec4(0.0);" +
-                "float normDistSum = 0.0;" +
-                "float gt;" +
-                "for (float i = -rad; i <= rad;i++) {" +
-                    "gt = gauss(i,aa,stDevSQ);" +
-                    "normDistSum += gt;" +
-                    "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
-                "}" +
-                "gl_FragColor = sum / vec4(normDistSum);" +
-                "}"
+        "uniform vec2 u_res;" +
+        "uniform sampler2D u_tex;" +
+        "float gauss(float inp, float aa, float stDevSQ) {" +
+            "return aa * exp(-(inp*inp)/stDevSQ);" +
+        "}" +
+        "vec2 downScale(float scale, vec2 inp) {" +
+            "vec2 scRes = u_res * scale;" +
+            "vec2 r = inp / scRes;" +
+            "return vec2(float(int(r.x))*scRes.x, float(int(r.y))*scRes.y);" +
+        "}" +
+        "void main () {" +
+            "float stDev = 8.0;" +
+            "float stDevSQ = 2.0 * stDev * stDev;" +
+            "float aa = 0.398 / stDev;" +
+            "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
+            "const float rad = 7.0;" +
+            "vec4 sum = vec4(0.0);" +
+            "float normDistSum = 0.0;" +
+            "float gt;" +
+            "for (float i = -rad; i <= rad;i++) {" +
+                "gt = gauss(i,aa,stDevSQ);" +
+                "normDistSum += gt;" +
+                "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
+            "}" +
+            "gl_FragColor = sum / vec4(normDistSum);" +
+        "}"
 
     private val mHBlurShaderCode =
         "precision mediump float;" +
                 "uniform vec2 u_res;" +
+                "uniform vec2 tex_res;" +
                 "uniform sampler2D u_tex;" +
                 "float gauss(float inp, float aa, float stDevSQ) {" +
                     "return aa * exp(-(inp*inp)/stDevSQ);" +
@@ -150,6 +154,9 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
         mWidth = width
         mHeight = height
 
+        mClipWidth = (mWidth * 0.5f).toInt()
+        mClipHeight = (mHeight * 0.5f).toInt()
+
         mInputBitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888)
 
         mBlurFrameBuffer = intArrayOf(1)
@@ -160,7 +167,7 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
         glGenRenderbuffers(1, mBlurDepthBuffer, 0)
         glGenTextures(1, mBlurTexture, 0)
 
-        glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
+        glBindTexture(GL_TEXTURE_2D, mBlurTexture!![0])
         glTexParameteri(
             GL_TEXTURE_2D,
             GL_TEXTURE_WRAP_S,
@@ -178,22 +185,22 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
             GL_TEXTURE_MIN_FILTER,
             GL_LINEAR)
 
-        val buf = IntArray(mWidth * mHeight)
+        val buf = IntArray(mClipWidth * mClipHeight)
         val mTexBuffer = ByteBuffer.allocateDirect(buf.size * Float.SIZE_BYTES)
             .order(ByteOrder.nativeOrder()).asIntBuffer()
 
         glTexImage2D(
             GL_TEXTURE_2D,
-            0, GL_RGB, mWidth, mHeight, 0,
+            0, GL_RGB, mClipWidth, mClipHeight, 0,
             GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mTexBuffer
         )
 
-        glBindRenderbuffer(GL_RENDERBUFFER, mBlurDepthBuffer[0])
+        glBindRenderbuffer(GL_RENDERBUFFER, mBlurDepthBuffer!![0])
         glRenderbufferStorage(
             GL_RENDERBUFFER,
             GL_DEPTH_COMPONENT16,
-            mWidth,
-            mHeight
+            mClipWidth,
+            mClipHeight
         )
 
     }
@@ -213,22 +220,22 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
     }
 
     private fun renderHorizontalBlur() {
-        glViewport(0, 0, mWidth, mHeight)
+        glViewport(0, 0, mClipWidth, mClipHeight)
 
-        glBindFramebuffer(GL_FRAMEBUFFER, mBlurFrameBuffer[0])
+        glBindFramebuffer(GL_FRAMEBUFFER, mBlurFrameBuffer!![0])
 
         glFramebufferTexture2D(
             GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_TEXTURE_2D,
-            mBlurTexture[0],
+            mBlurTexture!![0],
             0)
 
         glFramebufferRenderbuffer(
             GL_FRAMEBUFFER,
             GL_DEPTH_ATTACHMENT,
             GL_RENDERBUFFER,
-            mBlurDepthBuffer[0])
+            mBlurDepthBuffer!![0])
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER)
             != GL_FRAMEBUFFER_COMPLETE) {
@@ -255,13 +262,19 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
         glGenerateMipmap(GL_TEXTURE_2D)
 
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, mBlurTexture[0])
+        glBindTexture(GL_TEXTURE_2D, mBlurTexture!![0])
         glUniform1i(glGetUniformLocation(mHBlurProgram, "u_tex"), 0)
 
         glUniform2f(
             glGetUniformLocation(mHBlurProgram, "u_res"),
             mWidth.toFloat(),
             mHeight.toFloat()
+        )
+
+        glUniform2f(
+            glGetUniformLocation(mHBlurProgram, "tex_res"),
+            mClipWidth.toFloat(),
+            mClipHeight.toFloat()
         )
 
         glDrawElements(
@@ -274,10 +287,11 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
     }
 
     private fun renderPostProcess() {
-        val texture = mBlurTexture[0]
+        val texture = mBlurTexture!![0]
         glBindFramebuffer(GL_FRAMEBUFFER, 0) // default fbo
 
         glUseProgram(mVBlurProgram)
+        glViewport(0,0,mWidth,mHeight)
         glClearColor(1f, 0f, 0f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
@@ -312,11 +326,20 @@ class OpenGLRendererBlur(targetView: View) : GLSurfaceView.Renderer {
     }
 
     fun clean() {
-        if (!mInputBitmap.isRecycled) {
-            mInputBitmap.recycle()
+        if (mInputBitmap != null && !mInputBitmap!!.isRecycled) {
+            mInputBitmap?.recycle()
         }
-        glDeleteFramebuffers(1, mBlurFrameBuffer, 0)
-        glDeleteTextures(1, mBlurTexture, 0)
-        glDeleteRenderbuffers(1, mBlurDepthBuffer, 0)
+
+        if (mBlurFrameBuffer != null) {
+            glDeleteFramebuffers(1, mBlurFrameBuffer!!, 0)
+        }
+
+        if (mBlurTexture != null) {
+            glDeleteTextures(1, mBlurTexture!!, 0)
+        }
+
+        if (mBlurDepthBuffer != null) {
+            glDeleteRenderbuffers(1, mBlurDepthBuffer!!, 0)
+        }
     }
 }
