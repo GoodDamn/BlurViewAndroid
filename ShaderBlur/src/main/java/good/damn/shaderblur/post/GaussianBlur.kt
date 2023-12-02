@@ -16,15 +16,16 @@ class GaussianBlur {
 
     private val TAG = "GaussianBlur"
 
-    var texture: IntArray = intArrayOf(1)
-    var targetView: View? = null
+    var texture: IntArray? = null
 
-    var scaleFactor = 0.125f
+    var scaleFactor = 0.18f
         set(value) {
             field = value
             mSWidth = mWidth * scaleFactor
             mSHeight = mHeight * scaleFactor
         }
+
+    private lateinit var mTargetView: View
 
     private var mSWidth = 0f
     private var mSHeight = 0f
@@ -99,6 +100,11 @@ class GaussianBlur {
                 "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
 
+    constructor(
+        targetView: View
+    ) {
+        mTargetView = targetView
+    }
 
     fun create(
         vertexBuffer: FloatBuffer,
@@ -135,6 +141,7 @@ class GaussianBlur {
         width: Int,
         height: Int
     ) {
+        deleteFBO()
         mWidth = width.toFloat()
         mHeight = height.toFloat()
 
@@ -146,6 +153,8 @@ class GaussianBlur {
             height,
             Bitmap.Config.ARGB_8888)
 
+        texture = intArrayOf(1)
+
         mBlurHFrameBuffer = intArrayOf(1)
         mBlurHDepthBuffer = intArrayOf(1)
 
@@ -154,7 +163,7 @@ class GaussianBlur {
 
         glGenTextures(1, texture, 0)
 
-        configTexture(texture[0])
+        configTexture(texture!![0])
 
         val w = mSWidth.toInt()
         val h = mSHeight.toInt()
@@ -163,6 +172,24 @@ class GaussianBlur {
     }
 
     fun clean() {
+        if (mVBlurProgram != 0) {
+            glDeleteProgram(mVBlurProgram)
+        }
+
+        if (mHBlurProgram != 0) {
+            glDeleteProgram(mHBlurProgram)
+        }
+
+        deleteFBO()
+    }
+
+    fun draw() {
+        drawBitmap()
+        horizontal()
+        vertical()
+    }
+
+    private fun deleteFBO() {
         if (mInputBitmap != null && !mInputBitmap!!.isRecycled) {
             mInputBitmap!!.recycle()
         }
@@ -171,19 +198,13 @@ class GaussianBlur {
             glDeleteFramebuffers(1, mBlurHFrameBuffer!!, 0)
         }
 
-        /*if (mBlurHTexture != null) {
-            glDeleteTextures(1, mBlurHTexture!!, 0)
-        }*/
+        if (texture != null) {
+            glDeleteTextures(1, texture!!, 0)
+        }
 
         if (mBlurHDepthBuffer != null) {
             glDeleteRenderbuffers(1, mBlurHDepthBuffer!!, 0)
         }
-    }
-
-    fun draw() {
-        drawBitmap()
-        horizontal()
-        vertical()
     }
 
     private fun horizontal() {
@@ -195,7 +216,7 @@ class GaussianBlur {
             GL_FRAMEBUFFER,
             GL_COLOR_ATTACHMENT0,
             GL_TEXTURE_2D,
-            texture[0],
+            texture!![0],
             0)
 
         glFramebufferRenderbuffer(
@@ -229,7 +250,7 @@ class GaussianBlur {
         glGenerateMipmap(GL_TEXTURE_2D)
 
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, texture[0])
+        glBindTexture(GL_TEXTURE_2D, texture!![0])
         glUniform1i(glGetUniformLocation(mHBlurProgram, "u_tex"), 0)
 
         glUniform2f(
@@ -279,7 +300,7 @@ class GaussianBlur {
         )
 
         glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, texture[0])
+        glBindTexture(GL_TEXTURE_2D, texture!![0])
         glUniform1i(glGetUniformLocation(mVBlurProgram, "u_tex"), 0)
 
         glUniform1f(glGetUniformLocation(mVBlurProgram,
@@ -345,11 +366,8 @@ class GaussianBlur {
     }
 
     private fun drawBitmap() {
-        if (targetView == null) {
-            return
-        }
         mCanvas.setBitmap(mInputBitmap)
-        mCanvas.translate(0f, -targetView!!.scrollY.toFloat())
-        targetView!!.draw(mCanvas)
+        mCanvas.translate(0f, -mTargetView.scrollY.toFloat())
+        mTargetView.draw(mCanvas)
     }
 }

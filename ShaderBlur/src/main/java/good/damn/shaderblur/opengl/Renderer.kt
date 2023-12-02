@@ -39,24 +39,13 @@ class Renderer(targetView: View) : GLSurfaceView.Renderer {
             "gl_Position = position;" +
         "}"
 
-    private val mFragmentShaderCode =
-        "precision mediump float;" +
-        "uniform vec2 u_res;" +
-        "uniform sampler2D u_tex;" +
-        "void main () {" +
-            "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-            "gl_FragColor = texture2D(u_tex, crs.xy / u_res * 0.25);" +
-        "}"
-
-    private var mGlProgram = 0
-
     var mWidth = 1f
     var mHeight = 1f
 
-    private val mBlurEffect = GaussianBlur()
+    private var mBlurEffect: GaussianBlur
 
     init {
-        mBlurEffect.targetView = targetView
+        mBlurEffect = GaussianBlur(targetView)
     }
 
     override fun onSurfaceCreated(gl: GL10?, p1: EGLConfig?) {
@@ -76,19 +65,6 @@ class Renderer(targetView: View) : GLSurfaceView.Renderer {
         mIndicesBuffer = drawByteBuffer.asShortBuffer()
         mIndicesBuffer.put(mIndices)
         mIndicesBuffer.position(0)
-
-        mGlProgram = glCreateProgram()
-        glAttachShader(mGlProgram, OpenGLUtils
-            .loadShader(GL_FRAGMENT_SHADER,
-                mFragmentShaderCode)
-        )
-
-        glAttachShader(mGlProgram, OpenGLUtils
-            .loadShader(GL_VERTEX_SHADER,
-                mVertexShaderCode)
-        )
-
-        glLinkProgram(mGlProgram)
 
         mBlurEffect.create(
             mVertexBuffer,
@@ -111,7 +87,6 @@ class Renderer(targetView: View) : GLSurfaceView.Renderer {
     override fun onDrawFrame(gl: GL10?) {
         gl?.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         mBlurEffect.draw()
-
         mOnFrameCompleteListener?.run()
     }
 
