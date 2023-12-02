@@ -45,13 +45,13 @@ class Renderer(targetView: View) : GLSurfaceView.Renderer {
         "uniform sampler2D u_tex;" +
         "void main () {" +
             "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-            "gl_FragColor = texture2D(u_tex, vec2(crs.x,crs.y) / u_res);" +
+            "gl_FragColor = texture2D(u_tex, crs.xy / u_res * 0.25);" +
         "}"
 
     private var mGlProgram = 0
 
-    private var mWidth = 1f
-    private var mHeight = 1f
+    var mWidth = 1f
+    var mHeight = 1f
 
     private val mBlurEffect = GaussianBlur()
 
@@ -109,49 +109,8 @@ class Renderer(targetView: View) : GLSurfaceView.Renderer {
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        gl?.glClear(GL_COLOR_BUFFER_BIT)
+        gl?.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         mBlurEffect.draw()
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0) // default fbo
-
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, mBlurEffect.texture[0])
-
-        glViewport(0,0, mWidth.toInt(), mHeight.toInt())
-        glClearColor(1f,1f,0f,1f)
-        glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
-
-        glUseProgram(mGlProgram)
-
-
-        val positionHandle = glGetAttribLocation(mGlProgram, "position")
-        glEnableVertexAttribArray(positionHandle)
-
-        glVertexAttribPointer(
-            positionHandle,
-            2,
-            GL_FLOAT,
-            false,
-            8,
-            mVertexBuffer
-        )
-
-
-        glUniform1i(glGetUniformLocation(mGlProgram, "u_tex"), 0)
-
-        glUniform2f(
-            glGetUniformLocation(mGlProgram, "u_res"),
-            mWidth,
-            mHeight
-        )
-
-        glDrawElements(
-            GL_TRIANGLES,
-            mIndicesBuffer.capacity(), // rect
-            GL_UNSIGNED_SHORT,
-            mIndicesBuffer
-        )
-        glDisableVertexAttribArray(positionHandle)
 
         mOnFrameCompleteListener?.run()
     }

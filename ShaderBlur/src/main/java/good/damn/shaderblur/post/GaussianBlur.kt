@@ -19,11 +19,21 @@ class GaussianBlur {
     var texture: IntArray = intArrayOf(1)
     var targetView: View? = null
 
-    private lateinit var mVertexBuffer: FloatBuffer
-    private lateinit var mIndicesBuffer: ShortBuffer
+    var scaleFactor = 0.125f
+        set(value) {
+            field = value
+            mSWidth = mWidth * scaleFactor
+            mSHeight = mHeight * scaleFactor
+        }
+
+    private var mSWidth = 0f
+    private var mSHeight = 0f
 
     private var mWidth = 0f
     private var mHeight = 0f
+
+    private lateinit var mVertexBuffer: FloatBuffer
+    private lateinit var mIndicesBuffer: ShortBuffer
 
     private var mVBlurProgram = 0
     private var mHBlurProgram = 0
@@ -33,16 +43,13 @@ class GaussianBlur {
     private var mInputBitmap: Bitmap? = null
 
     private var mBlurHDepthBuffer: IntArray? = null
-    //private var mBlurHTexture: IntArray? = null
     private var mBlurHFrameBuffer: IntArray? = null
-
-    private var mBlurVDepthBuffer: IntArray? = null
-    private var mBlurVFrameBuffer: IntArray? = null
 
     private val mVBlurShaderCode =
         "precision mediump float;" +
                 "uniform vec2 u_res;" +
                 "uniform sampler2D u_tex;" +
+                "uniform float resFactor;" +
                 "float gauss(float inp, float aa, float stDevSQ) {" +
                 "return aa * exp(-(inp*inp)/stDevSQ);" +
                 "}" +
@@ -63,7 +70,7 @@ class GaussianBlur {
                 "for (float i = -rad; i <= rad;i++) {" +
                 "gt = gauss(i,aa,stDevSQ);" +
                 "normDistSum += gt;" +
-                "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
+                "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res * resFactor) * gt;" +
                 "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
                 "}"
@@ -128,8 +135,11 @@ class GaussianBlur {
         width: Int,
         height: Int
     ) {
-        mWidth = width * 0.5f
-        mHeight = height * 0.5f
+        mWidth = width.toFloat()
+        mHeight = height.toFloat()
+
+        mSWidth = mWidth * scaleFactor
+        mSHeight = mHeight * scaleFactor
 
         mInputBitmap = Bitmap.createBitmap(
             width,
@@ -139,23 +149,17 @@ class GaussianBlur {
         mBlurHFrameBuffer = intArrayOf(1)
         mBlurHDepthBuffer = intArrayOf(1)
 
-        mBlurVFrameBuffer = intArrayOf(1)
-        mBlurVDepthBuffer = intArrayOf(1)
-
         glGenFramebuffers(1, mBlurHFrameBuffer, 0)
         glGenRenderbuffers(1, mBlurHDepthBuffer, 0)
 
-        glGenFramebuffers(1, mBlurVFrameBuffer, 0)
-        glGenRenderbuffers(1, mBlurVDepthBuffer, 0)
-
         glGenTextures(1, texture, 0)
+
         configTexture(texture[0])
 
-        val w = mWidth.toInt()
-        val h = mHeight.toInt()
+        val w = mSWidth.toInt()
+        val h = mSHeight.toInt()
 
         configBuffers(w,h,mBlurHDepthBuffer!![0])
-        //configBuffers(w,h,mBlurVDepthBuffer!![0])
     }
 
     fun clean() {
@@ -179,11 +183,11 @@ class GaussianBlur {
     fun draw() {
         drawBitmap()
         horizontal()
-        //vertical()
+        vertical()
     }
 
     private fun horizontal() {
-        glViewport(0, 0, mWidth.toInt(), mHeight.toInt())
+        glViewport(0, 0, mSWidth.toInt(), mSHeight.toInt())
 
         glBindFramebuffer(GL_FRAMEBUFFER, mBlurHFrameBuffer!![0])
 
@@ -230,14 +234,14 @@ class GaussianBlur {
 
         glUniform2f(
             glGetUniformLocation(mHBlurProgram, "u_res"),
-            mWidth,
-            mHeight
+            mSWidth,
+            mSHeight
         )
 
         glUniform2f(
             glGetUniformLocation(mHBlurProgram, "tex_res"),
-            mWidth,
-            mHeight
+            mSWidth,
+            mSHeight
         )
 
         glDrawElements(
@@ -249,27 +253,17 @@ class GaussianBlur {
         glDisableVertexAttribArray(positionHandle)
     }
 
-    /*private fun vertical() {
+    private fun vertical() {
         glBindFramebuffer(
             GL_FRAMEBUFFER,
-            mBlurVFrameBuffer!![0]
+            0
         )
 
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER,
-            GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D,
-            texture[0],
-            0)
-
-        glFramebufferRenderbuffer(
-            GL_FRAMEBUFFER,
-            GL_DEPTH_ATTACHMENT,
-            GL_RENDERBUFFER,
-            mBlurVDepthBuffer!![0])
-
         glUseProgram(mVBlurProgram)
-        glViewport(0,0,mWidth.toInt(),mHeight.toInt())
+        glViewport(0,0,
+            mWidth.toInt(),
+            mHeight.toInt()
+        )
         glClearColor(1f, 1f, 1f, 1f)
         glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
 
@@ -284,16 +278,12 @@ class GaussianBlur {
             mVertexBuffer
         )
 
-        glCopyTexImage2D(
-            GL_TEXTURE_2D,
-            0, GL_RGB,0,0,mWidth.toInt(),mHeight.toInt(),
-            0)
-
-        glGenerateMipmap(GL_TEXTURE_2D)
-
         glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, texture[0])
         glUniform1i(glGetUniformLocation(mVBlurProgram, "u_tex"), 0)
+
+        glUniform1f(glGetUniformLocation(mVBlurProgram,
+            "resFactor"), scaleFactor)
 
         glUniform2f(
             glGetUniformLocation(mVBlurProgram, "u_res"),
@@ -308,7 +298,7 @@ class GaussianBlur {
             mIndicesBuffer
         )
         glDisableVertexAttribArray(positionHandle)
-    }*/
+    }
 
     private fun configTexture(texture: Int) {
         glBindTexture(GL_TEXTURE_2D, texture)
