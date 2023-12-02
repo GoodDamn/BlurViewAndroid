@@ -6,13 +6,13 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
-import good.damn.shaderblur.opengl.OpenGLRendererBlur
+import good.damn.shaderblur.opengl.Renderer
 import kotlinx.coroutines.Runnable
 
 class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     private val TAG = "BlurShaderView";
-    private var mBlurRenderer: OpenGLRendererBlur? = null;
+    private var mBlurRenderer: good.damn.shaderblur.opengl.Renderer? = null;
 
     private lateinit var mSourceView: View
 
@@ -26,7 +26,7 @@ class BlurShaderView(context: Context): GLSurfaceView(context) {
 
     fun setSourceView(sourceView: View) {
         mSourceView = sourceView;
-        mBlurRenderer = OpenGLRendererBlur(mSourceView)
+        mBlurRenderer = Renderer(mSourceView)
         setEGLContextClientVersion(2)
         setRenderer(mBlurRenderer)
         renderMode = RENDERMODE_WHEN_DIRTY
