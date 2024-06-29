@@ -6,12 +6,10 @@ import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import java.nio.ShortBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
 import android.opengl.GLUtils
-import java.nio.IntBuffer
 
 class GaussianBlur: GLSurfaceView.Renderer {
 
@@ -20,7 +18,16 @@ class GaussianBlur: GLSurfaceView.Renderer {
         private const val SIZE = 2
     }
 
-    lateinit var bitmap: Bitmap
+    var bitmap: Bitmap? = null
+        set(v) {
+            field = v
+            if (v == null) {
+                return
+            }
+            mHorizontalBlur?.bitmap = v
+        }
+
+    private var mHorizontalBlur: HorizontalBlur? = null
 
     private var mfWidth = 1f
     private var mfHeight = 1f
@@ -30,8 +37,6 @@ class GaussianBlur: GLSurfaceView.Renderer {
 
     private lateinit var mVertexBuffer: FloatBuffer
     private lateinit var mIndicesBuffer: ByteBuffer
-
-    private lateinit var mPixels: IntArray
 
     private var mProgram: Int = 0
     private var mTexture = intArrayOf(1)
@@ -58,7 +63,7 @@ class GaussianBlur: GLSurfaceView.Renderer {
                 "gl_Position = position;" +
                 "}"
 
-    private val mFragmentShaderCode =
+    private val mFragmentVerticalShaderCode =
         "precision mediump float;" +
     "uniform vec2 u_res;" +
     "uniform sampler2D u_tex;" +
@@ -105,7 +110,7 @@ class GaussianBlur: GLSurfaceView.Renderer {
 
         mProgram = OpenGLUtils.createProgram(
             mVertexShaderCode,
-            mFragmentShaderCode
+            mFragmentVerticalShaderCode
         )
 
         glLinkProgram(
@@ -160,6 +165,17 @@ class GaussianBlur: GLSurfaceView.Renderer {
         glActiveTexture(
             GL_TEXTURE0
         )
+
+        mHorizontalBlur = HorizontalBlur(
+            mVertexShaderCode,
+            mVertexBuffer,
+            mIndicesBuffer
+        )
+
+        mHorizontalBlur?.onSurfaceCreated(
+            gl,
+            config
+        )
     }
 
     override fun onSurfaceChanged(
@@ -172,20 +188,24 @@ class GaussianBlur: GLSurfaceView.Renderer {
 
         miWidth = width
         miHeight = height
-
-        mPixels = IntArray(
-            miWidth * miHeight
+        mHorizontalBlur?.onSurfaceChanged(
+            gl,
+            width,
+            height
         )
+
+        mHorizontalBlur?.texture = mTexture[0]
     }
 
     override fun onDrawFrame(
         gl: GL10?
     ) {
+        mHorizontalBlur?.onDrawFrame(
+            gl
+        )
 
-        GLUtils.texImage2D(
-            GL_TEXTURE_2D,
-            0,
-            bitmap,
+        glBindFramebuffer(
+            GL_FRAMEBUFFER,
             0
         )
 
@@ -231,6 +251,8 @@ class GaussianBlur: GLSurfaceView.Renderer {
         glDisableVertexAttribArray(
             mAttrPosition
         )
+
+
     }
 
 
