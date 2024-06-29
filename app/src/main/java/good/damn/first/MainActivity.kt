@@ -19,7 +19,9 @@ import java.util.Random
 
 class MainActivity : AppCompatActivity() {
 
-    private val TAG = "MainActivity";
+    companion object {
+        private const val TAG = "MainActivity"
+    }
     private lateinit var mSurfaceBlurView: BlurShaderView;
 
     @SuppressLint("SetTextI18n")
@@ -34,8 +36,10 @@ class MainActivity : AppCompatActivity() {
 
         val random = Random();
 
-        mSurfaceBlurView = BlurShaderView(this)
-        mSurfaceBlurView.setSourceView(scrollView)
+        mSurfaceBlurView = BlurShaderView(
+            this,
+            scrollView
+        )
 
         val configurationInfo: ConfigurationInfo =
             (getSystemService(ACTIVITY_SERVICE) as ActivityManager)
