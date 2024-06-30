@@ -17,14 +17,11 @@ class HorizontalBlur(
     private val mVertexCode: String,
     private val mVertexBuffer: FloatBuffer,
     private val mIndicesBuffer: ByteBuffer
-): GLSurfaceView.Renderer {
+) {
 
     companion object {
         private const val TAG = "HorizontalBlur"
     }
-    
-    var texture: Int = 0
-    var bitmap: Bitmap? = null
 
     private val mFragmentShaderCode = "precision mediump float;" +
             "uniform vec2 u_res;" +
@@ -50,8 +47,8 @@ class HorizontalBlur(
                     "sum += texture2D(" +
                         "u_tex," +
                         "vec2(" +
-                            "crs.x+i," +
-                            "crs.y" +
+                            "gl_FragCoord.x+i," +
+                            "gl_FragCoord.y" +
                         ") / u_res) * gt;" +
                     "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
@@ -72,10 +69,7 @@ class HorizontalBlur(
     private var miWidth = 1
     private var miHeight = 1
 
-    override fun onSurfaceCreated(
-        gl: GL10?,
-        config: EGLConfig?
-    ) {
+    fun onSurfaceCreated() {
         mProgram = OpenGLUtils.createProgram(
             mVertexCode,
             mFragmentShaderCode
@@ -113,8 +107,7 @@ class HorizontalBlur(
         )
     }
 
-    override fun onSurfaceChanged(
-        gl: GL10?,
+    fun onSurfaceChanged(
         width: Int,
         height: Int
     ) {
@@ -149,12 +142,10 @@ class HorizontalBlur(
         )
     }
 
-    override fun onDrawFrame(
-        gl: GL10?
+    fun onDrawFrame(
+        bitmap: Bitmap,
+        texture: Int
     ) {
-        if (bitmap == null) {
-            return
-        }
         glViewport(
             0,0,
             miWidth, miHeight

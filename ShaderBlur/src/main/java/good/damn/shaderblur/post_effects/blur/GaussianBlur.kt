@@ -19,13 +19,6 @@ class GaussianBlur: GLSurfaceView.Renderer {
     }
 
     var bitmap: Bitmap? = null
-        set(v) {
-            field = v
-            if (v == null) {
-                return
-            }
-            mHorizontalBlur?.bitmap = v
-        }
 
     private var mHorizontalBlur: HorizontalBlur? = null
 
@@ -172,10 +165,7 @@ class GaussianBlur: GLSurfaceView.Renderer {
             mIndicesBuffer
         )
 
-        mHorizontalBlur?.onSurfaceCreated(
-            gl,
-            config
-        )
+        mHorizontalBlur?.onSurfaceCreated()
     }
 
     override fun onSurfaceChanged(
@@ -189,20 +179,20 @@ class GaussianBlur: GLSurfaceView.Renderer {
         miWidth = width
         miHeight = height
         mHorizontalBlur?.onSurfaceChanged(
-            gl,
             width,
             height
         )
-
-        mHorizontalBlur?.texture = mTexture[0]
     }
 
     override fun onDrawFrame(
         gl: GL10?
     ) {
-        mHorizontalBlur?.onDrawFrame(
-            gl
-        )
+        bitmap?.let {
+            mHorizontalBlur?.onDrawFrame(
+                it,
+                mTexture[0]
+            )
+        }
 
         glBindFramebuffer(
             GL_FRAMEBUFFER,

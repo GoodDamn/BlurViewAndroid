@@ -16,7 +16,7 @@ class BlurShaderView(
     private val mSourceView: View
 ): GLSurfaceView(
     context
-) {
+), java.lang.Runnable {
 
     companion object {
         private const val TAG = "BlurShaderView"
@@ -31,24 +31,6 @@ class BlurShaderView(
         Looper.getMainLooper()
     )
 
-    private val mRunRequestRender = Runnable {
-        mSourceView.viewTreeObserver.addOnDrawListener {
-            mCanvas.setBitmap(
-                mInputBitmap
-            )
-            mCanvas.translate(
-                0f,
-                -mSourceView.scrollY.toFloat()
-            )
-            mSourceView.draw(
-                mCanvas
-            )
-            mBlurRenderer.requestRender(
-                mInputBitmap
-            )
-            requestRender()
-        }
-    }
 
     init {
         setEGLContextClientVersion(2)
@@ -60,8 +42,29 @@ class BlurShaderView(
 
         post {
             Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
-            mHandlerDelay.postDelayed(mRunRequestRender,2);
+            mHandlerDelay.postDelayed({
+                mSourceView.viewTreeObserver.addOnDrawListener {
+                    post(this)
+                }
+            },2);
         }
+    }
+
+    override fun run() {
+        mCanvas.setBitmap(
+            mInputBitmap
+        )
+        mCanvas.translate(
+            -mSourceView.scrollX.toFloat(),
+            -mSourceView.scrollY.toFloat()
+        )
+        mSourceView.draw(
+            mCanvas
+        )
+        mBlurRenderer.requestRender(
+            mInputBitmap
+        )
+        requestRender()
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
