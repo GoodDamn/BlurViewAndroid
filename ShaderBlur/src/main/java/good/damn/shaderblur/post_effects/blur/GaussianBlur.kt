@@ -280,8 +280,13 @@ class GaussianBlur(
 
     }
 
-
     fun clean() {
-
+        mHorizontalBlur?.clean()
+        if (mProgram == 0) {
+            return
+        }
+        glDeleteProgram(
+            mProgram
+        )
     }
 }

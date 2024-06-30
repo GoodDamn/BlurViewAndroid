@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
+import android.view.ViewTreeObserver
 import good.damn.shaderblur.opengl.BlurRenderer
 import kotlinx.coroutines.Runnable
 
@@ -18,7 +19,8 @@ class BlurShaderView(
     scaleFactor: Float
 ): GLSurfaceView(
     context
-), java.lang.Runnable {
+), java.lang.Runnable,
+ViewTreeObserver.OnDrawListener {
 
     companion object {
         private const val TAG = "BlurShaderView"
@@ -32,10 +34,6 @@ class BlurShaderView(
     private val mCanvas = Canvas()
     private lateinit var mInputBitmap: Bitmap
 
-    private val mHandlerDelay = Handler(
-        Looper.getMainLooper()
-    )
-
 
     init {
         setEGLContextClientVersion(2)
@@ -44,15 +42,20 @@ class BlurShaderView(
         )
 
         renderMode = RENDERMODE_WHEN_DIRTY
+    }
 
-        post {
-            Log.d(TAG, "onCreate: surfaceBlurView: onGlobalLayoutListener");
-            mHandlerDelay.postDelayed({
-                mSourceView.viewTreeObserver.addOnDrawListener {
-                    post(this)
-                }
-            },2);
-        }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        mInputBitmap = Bitmap.createBitmap(
+            width,
+            height,
+            Bitmap.Config.ARGB_8888
+        )
+
+        mBlurRenderer.requestRender(
+            mInputBitmap
+        )
     }
 
     override fun run() {
@@ -72,16 +75,19 @@ class BlurShaderView(
         requestRender()
     }
 
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        super.onLayout(changed, left, top, right, bottom)
-        mInputBitmap = Bitmap.createBitmap(
-            width,
-            height,
-            Bitmap.Config.ARGB_8888
-        )
+    override fun onDraw() {
+        post(this)
+    }
 
-        mBlurRenderer.requestRender(
-            mInputBitmap
+    fun startRenderLoop() {
+        mSourceView.viewTreeObserver.addOnDrawListener(
+            this
+        )
+    }
+
+    fun stopRenderLoop() {
+        mSourceView.viewTreeObserver.removeOnDrawListener(
+            this
         )
     }
 

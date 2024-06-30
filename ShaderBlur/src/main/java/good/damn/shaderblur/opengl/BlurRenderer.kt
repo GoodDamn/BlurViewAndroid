@@ -14,7 +14,7 @@ class BlurRenderer(
 ): GLSurfaceView.Renderer {
 
     companion object {
-        private const val TAG = "Renderer"
+        private const val TAG = "BlurRenderer"
     }
 
     private var mBlurEffect = GaussianBlur(

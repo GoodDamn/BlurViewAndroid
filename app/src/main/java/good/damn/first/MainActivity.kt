@@ -25,14 +25,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mSurfaceBlurView: BlurShaderView;
 
     @SuppressLint("SetTextI18n")
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+    override fun onCreate(
+        savedInstanceState: Bundle?
+    ) {
+        super.onCreate(savedInstanceState)
 
-        val rootLayout = findViewById<FrameLayout>(R.id.mainActivity_rootFrameLayout);
-        val scrollView = rootLayout.getChildAt(0) as ScrollView;
+        val context = this
+        val rootLayout = FrameLayout(
+            context
+        )
+        val scrollView = ScrollView(
+            context
+        )
+        val contentLayout = LinearLayout(
+            context
+        )
 
-        val contentLayout = scrollView.getChildAt(0) as LinearLayout;
+        contentLayout.orientation = LinearLayout
+            .VERTICAL
 
         val random = Random()
 
@@ -45,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 
         val configurationInfo: ConfigurationInfo =
             (getSystemService(ACTIVITY_SERVICE) as ActivityManager)
-            .deviceConfigurationInfo;
+            .deviceConfigurationInfo
 
         Toast.makeText(
             this,
@@ -82,9 +92,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
-            rootLayout.addView(mSurfaceBlurView, FrameLayout.LayoutParams.MATCH_PARENT, 150);
+            rootLayout.addView(
+                mSurfaceBlurView,
+                -1,
+                150
+            );
         },1500);
 
+
+        scrollView.addView(
+            contentLayout
+        )
+
+        rootLayout.addView(
+            scrollView
+        )
+
+        setContentView(
+            rootLayout
+        )
     }
 
     override fun onDestroy() {
@@ -94,11 +120,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         mSurfaceBlurView.onResume()
+        mSurfaceBlurView.startRenderLoop()
         super.onResume()
     }
 
     override fun onPause() {
         mSurfaceBlurView.onPause()
+        mSurfaceBlurView.stopRenderLoop()
         super.onPause()
     }
 

@@ -252,4 +252,25 @@ class HorizontalBlur(
             mAttrPosition
         )
     }
+
+    fun clean() {
+
+        glDeleteFramebuffers(
+            1,
+            mFrameBuffer,
+            0
+        )
+
+        glDeleteRenderbuffers(
+            1,
+            mDepthBuffer,
+            0
+        )
+
+        if (mProgram != 0) {
+            glDeleteProgram(
+                mProgram
+            )
+        }
+    }
 }
