@@ -39,7 +39,8 @@ class MainActivity : AppCompatActivity() {
         mSurfaceBlurView = BlurShaderView(
             this,
             scrollView,
-            10
+            blurRadius = 8,
+            scaleFactor = 0.3f
         )
 
         val configurationInfo: ConfigurationInfo =

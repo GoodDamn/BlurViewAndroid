@@ -12,7 +12,8 @@ import android.opengl.GLES20.*
 import android.opengl.GLUtils
 
 class GaussianBlur(
-    private val mBlurRadius: Int
+    private val mBlurRadius: Int,
+    private val mScaleFactor: Float
 ): GLSurfaceView.Renderer {
 
     companion object {
@@ -29,6 +30,9 @@ class GaussianBlur(
 
     private var miWidth = 1
     private var miHeight = 1
+
+    private var mfSWidth = 1f
+    private var mfSHeight = 1f
 
     private lateinit var mVertexBuffer: FloatBuffer
     private lateinit var mIndicesBuffer: ByteBuffer
@@ -51,6 +55,7 @@ class GaussianBlur(
     private var mAttrPosition = 0
     private var mUniformTexture = 0
     private var mUniformSize = 0
+    private var mUniformSizeScaled = 0
 
     private val mVertexShaderCode =
         "attribute vec4 position;" +
@@ -61,6 +66,7 @@ class GaussianBlur(
     private val mFragmentVerticalShaderCode =
         "precision mediump float;" +
     "uniform vec2 u_res;" +
+    "uniform vec2 u_texRes;" +
     "uniform sampler2D u_tex;" +
 
     "float gauss(float inp, float aa, float stDevSQ) {" +
@@ -71,11 +77,14 @@ class GaussianBlur(
         "float stDevSQ = 2.0 * stDev * stDev;" +
         "float aa = 0.398 / stDev;" +
         "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
+        "vec2 scaledCoord = vec2(" +
+            "crs.x / u_res.x * u_texRes.x," +
+            "crs.y / u_res.y * u_texRes.y);" +
         "const float rad = $mBlurRadius.0;" +
         "vec4 sum = vec4(0.0);" +
         "float normDistSum = 0.0;" +
         "float gt;" +
-        "vec2 offset = vec2(crs.x,crs.y - rad);" +
+        "vec2 offset = vec2(scaledCoord.x, scaledCoord.y - rad);" +
         "for (float i = -rad; i <= rad;i++) {" +
             "gt = gauss(i,aa,stDevSQ);" +
             "normDistSum += gt;" +
@@ -128,6 +137,11 @@ class GaussianBlur(
         mUniformSize = glGetUniformLocation(
             mProgram,
             "u_res"
+        )
+
+        mUniformSizeScaled = glGetUniformLocation(
+            mProgram,
+            "u_texRes"
         )
 
 
@@ -183,9 +197,14 @@ class GaussianBlur(
 
         miWidth = width
         miHeight = height
+
+        mfSWidth = width * mScaleFactor
+        mfSHeight = height * mScaleFactor
+
         mHorizontalBlur?.onSurfaceChanged(
             width,
-            height
+            height,
+            mScaleFactor
         )
     }
 
@@ -202,6 +221,11 @@ class GaussianBlur(
         glBindFramebuffer(
             GL_FRAMEBUFFER,
             0
+        )
+
+        glViewport(
+            0,0,
+            miWidth, miHeight
         )
 
         glUseProgram(
@@ -234,6 +258,12 @@ class GaussianBlur(
             mUniformSize,
             mfWidth,
             mfHeight
+        )
+
+        glUniform2f(
+            mUniformSizeScaled,
+            mfSWidth,
+            mfSHeight
         )
 
         glDrawElements(

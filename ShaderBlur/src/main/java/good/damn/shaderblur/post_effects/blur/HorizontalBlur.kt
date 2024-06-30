@@ -26,6 +26,7 @@ class HorizontalBlur(
 
     private val mFragmentShaderCode = "precision mediump float;" +
             "uniform vec2 u_res;" +
+            "uniform vec2 u_texRes;" +
             "uniform sampler2D u_tex;" +
 
             "float gauss(float inp, float aa, float stDevSQ) {" +
@@ -36,6 +37,9 @@ class HorizontalBlur(
                 "float stDevSQ = 2.0 * stDev * stDev;" +
                 "float aa = 0.398 / stDev;" +
                 "const float rad = $blurRadius.0;" +
+                "vec2 scaledCoord = vec2(" +
+                    "gl_FragCoord.x / u_res.x * u_texRes.x," +
+                    "gl_FragCoord.y / u_res.y * u_texRes.y);" +
                 "vec4 sum = vec4(0.0);" +
                 "float normDistSum = 0.0;" +
                 "float gt;" +
@@ -46,7 +50,7 @@ class HorizontalBlur(
                     "offset.x++;" +
                     "sum += texture2D(" +
                         "u_tex," +
-                        "offset / u_res) * gt;" +
+                        "offset / u_texRes) * gt;" +
                     "}" +
                 "gl_FragColor = sum / vec4(normDistSum);" +
             "}"
@@ -57,14 +61,21 @@ class HorizontalBlur(
     private val mFrameBuffer = intArrayOf(1)
 
     private var mAttrPosition: Int = 0
+    private var mUniformScaledSize: Int = 0
     private var mUniformSize: Int = 0
     private var mUniformTexture: Int = 0
 
     private var mfWidth = 1f
     private var mfHeight = 1f
 
+    private var mfSWidth = 1f
+    private var mfSHeight = 1f
+
     private var miWidth = 1
     private var miHeight = 1
+
+    private var miSWidth = 1
+    private var miSHeight = 1
 
     fun onSurfaceCreated() {
         mProgram = OpenGLUtils.createProgram(
@@ -91,6 +102,11 @@ class HorizontalBlur(
             "u_res"
         )
 
+        mUniformScaledSize = glGetUniformLocation(
+            mProgram,
+            "u_texRes"
+        )
+
         glGenFramebuffers(
             1,
             mFrameBuffer,
@@ -106,7 +122,8 @@ class HorizontalBlur(
 
     fun onSurfaceChanged(
         width: Int,
-        height: Int
+        height: Int,
+        scaleFactor: Float
     ) {
         mfWidth = width.toFloat()
         mfHeight = height.toFloat()
@@ -114,15 +131,22 @@ class HorizontalBlur(
         miWidth = width
         miHeight = height
 
-        val buf = IntArray(width * height)
+        mfSWidth = width * scaleFactor
+        mfSHeight = height * scaleFactor
+
+        miSWidth = mfSWidth.toInt()
+        miSHeight = mfSHeight.toInt()
+
+        val buf = IntArray(miSWidth * miSHeight)
         val mTexBuffer = ByteBuffer.allocateDirect(
             buf.size * Float.SIZE_BYTES
-        ).order(ByteOrder.nativeOrder())
-            .asIntBuffer()
+        ).order(
+            ByteOrder.nativeOrder()
+        ).asIntBuffer()
 
         glTexImage2D(
             GL_TEXTURE_2D,
-            0, GL_RGB, width, height, 0,
+            0, GL_RGB, miSWidth, miSHeight, 0,
             GL_RGB, GL_UNSIGNED_SHORT_5_6_5, mTexBuffer
         )
 
@@ -145,7 +169,7 @@ class HorizontalBlur(
     ) {
         glViewport(
             0,0,
-            miWidth, miHeight
+            miSWidth, miSHeight
         )
 
         glBindFramebuffer(
@@ -171,9 +195,6 @@ class HorizontalBlur(
             mProgram
         )
 
-        glClearColor(0f, 1f, 0f, 1f)
-        glClear(GL_DEPTH_BUFFER_BIT or GL_COLOR_BUFFER_BIT)
-
         glEnableVertexAttribArray(
             mAttrPosition
         )
@@ -189,7 +210,12 @@ class HorizontalBlur(
         GLUtils.texImage2D(
             GL_TEXTURE_2D,
             0,
-            bitmap,
+            Bitmap.createScaledBitmap(
+                bitmap,
+                miSWidth,
+                miSHeight,
+                false
+            ),
             0
         )
 
@@ -207,6 +233,12 @@ class HorizontalBlur(
             mUniformSize,
             mfWidth,
             mfHeight
+        )
+
+        glUniform2f(
+            mUniformScaledSize,
+            mfSWidth,
+            mfSHeight
         )
 
         glDrawElements(
