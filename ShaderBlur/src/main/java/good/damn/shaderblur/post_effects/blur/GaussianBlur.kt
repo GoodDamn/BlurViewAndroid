@@ -75,10 +75,12 @@ class GaussianBlur(
         "vec4 sum = vec4(0.0);" +
         "float normDistSum = 0.0;" +
         "float gt;" +
+        "vec2 offset = vec2(crs.x,crs.y - rad);" +
         "for (float i = -rad; i <= rad;i++) {" +
             "gt = gauss(i,aa,stDevSQ);" +
             "normDistSum += gt;" +
-            "sum += texture2D(u_tex, vec2(crs.x, crs.y+i)/u_res) * gt;" +
+            "offset.y++;" +
+            "sum += texture2D(u_tex, offset/u_res) * gt;" +
         "}" +
         "gl_FragColor = sum / vec4(normDistSum);" +
     "}"
