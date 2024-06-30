@@ -16,7 +16,8 @@ import java.nio.FloatBuffer
 class HorizontalBlur(
     private val mVertexCode: String,
     private val mVertexBuffer: FloatBuffer,
-    private val mIndicesBuffer: ByteBuffer
+    private val mIndicesBuffer: ByteBuffer,
+    blurRadius: Int
 ) {
 
     companion object {
@@ -34,10 +35,7 @@ class HorizontalBlur(
                 "float stDev = 8.0;" +
                 "float stDevSQ = 2.0 * stDev * stDev;" +
                 "float aa = 0.398 / stDev;" +
-                "const float rad = 7.0;" +
-                "vec2 crs = vec2(" +
-                    "gl_FragCoord.x," +
-                    "u_res.y-gl_FragCoord.y);" +
+                "const float rad = $blurRadius.0;" +
                 "vec4 sum = vec4(0.0);" +
                 "float normDistSum = 0.0;" +
                 "float gt;" +

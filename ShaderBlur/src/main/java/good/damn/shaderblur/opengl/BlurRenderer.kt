@@ -8,13 +8,17 @@ import good.damn.shaderblur.post_effects.blur.GaussianBlur
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class BlurRenderer : GLSurfaceView.Renderer {
+class BlurRenderer(
+    blurRadius: Int
+): GLSurfaceView.Renderer {
 
     companion object {
         private const val TAG = "Renderer"
     }
 
-    private var mBlurEffect = GaussianBlur()
+    private var mBlurEffect = GaussianBlur(
+        blurRadius
+    )
 
     override fun onSurfaceCreated(
         gl: GL10?,

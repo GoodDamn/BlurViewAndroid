@@ -13,7 +13,8 @@ import kotlinx.coroutines.Runnable
 
 class BlurShaderView(
     context: Context,
-    private val mSourceView: View
+    private val mSourceView: View,
+    blurRadius: Int
 ): GLSurfaceView(
     context
 ), java.lang.Runnable {
@@ -22,7 +23,9 @@ class BlurShaderView(
         private const val TAG = "BlurShaderView"
     }
 
-    private val mBlurRenderer = BlurRenderer()
+    private val mBlurRenderer = BlurRenderer(
+        blurRadius
+    )
 
     private val mCanvas = Canvas()
     private lateinit var mInputBitmap: Bitmap

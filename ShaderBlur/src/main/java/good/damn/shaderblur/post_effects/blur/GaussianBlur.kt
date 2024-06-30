@@ -11,7 +11,9 @@ import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
 import android.opengl.GLUtils
 
-class GaussianBlur: GLSurfaceView.Renderer {
+class GaussianBlur(
+    private val mBlurRadius: Int
+): GLSurfaceView.Renderer {
 
     companion object {
         private const val STRIDE = 8
@@ -69,14 +71,14 @@ class GaussianBlur: GLSurfaceView.Renderer {
         "float stDevSQ = 2.0 * stDev * stDev;" +
         "float aa = 0.398 / stDev;" +
         "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-        "const float rad = 7.0;" +
+        "const float rad = $mBlurRadius.0;" +
         "vec4 sum = vec4(0.0);" +
         "float normDistSum = 0.0;" +
         "float gt;" +
         "for (float i = -rad; i <= rad;i++) {" +
             "gt = gauss(i,aa,stDevSQ);" +
             "normDistSum += gt;" +
-            "sum += texture2D(u_tex, vec2(crs.x,crs.y+i)/u_res) * gt;" +
+            "sum += texture2D(u_tex, vec2(crs.x, crs.y+i)/u_res) * gt;" +
         "}" +
         "gl_FragColor = sum / vec4(normDistSum);" +
     "}"
@@ -162,7 +164,8 @@ class GaussianBlur: GLSurfaceView.Renderer {
         mHorizontalBlur = HorizontalBlur(
             mVertexShaderCode,
             mVertexBuffer,
-            mIndicesBuffer
+            mIndicesBuffer,
+            mBlurRadius
         )
 
         mHorizontalBlur?.onSurfaceCreated()

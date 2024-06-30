@@ -34,11 +34,12 @@ class MainActivity : AppCompatActivity() {
 
         val contentLayout = scrollView.getChildAt(0) as LinearLayout;
 
-        val random = Random();
+        val random = Random()
 
         mSurfaceBlurView = BlurShaderView(
             this,
-            scrollView
+            scrollView,
+            10
         )
 
         val configurationInfo: ConfigurationInfo =
