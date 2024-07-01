@@ -49,36 +49,4 @@ class VerticalBlur(
     }
 
 
-
-
-    /*fun onSurfaceChanged(
-        width: Int,
-        height: Int
-    ) {
-
-
-        val mTexBuffer = ByteBuffer.allocateDirect(
-            mScaledWidth * mScaledHeight * Float.SIZE_BYTES
-        ).order(
-            ByteOrder.nativeOrder()
-        ).asIntBuffer()
-
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0, GL_RGB, mScaledWidth, mScaledHeight, 0,
-            GL_RGB, GL_UNSIGNED_BYTE, mTexBuffer
-        )
-
-        glBindRenderbuffer(
-            GL_RENDERBUFFER,
-            mRenderBuffer[0]
-        )
-
-        glRenderbufferStorage(
-            GL_RENDERBUFFER,
-            GL_DEPTH_COMPONENT16,
-            mScaledWidth,
-            mScaledHeight
-        )
-    }*/
 }

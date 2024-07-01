@@ -50,7 +50,8 @@ class MainActivity : AppCompatActivity() {
             this,
             scrollView,
             blurRadius = 5,
-            scaleFactor = 0.5f
+            scaleFactor = 0.45f,
+            subscaleFactor = 0.45f
         )
 
         val configurationInfo: ConfigurationInfo =

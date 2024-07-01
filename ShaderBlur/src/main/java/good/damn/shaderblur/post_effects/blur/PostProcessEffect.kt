@@ -1,6 +1,7 @@
 package good.damn.shaderblur.post_effects.blur
 
 import android.opengl.GLES20.*
+import android.opengl.GLES30
 import android.util.Log
 import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
@@ -102,16 +103,10 @@ open class PostProcessEffect(
             GL_TEXTURE_MIN_FILTER,
             GL_LINEAR)
 
-        val mTexBuffer = ByteBuffer.allocateDirect(
-            mScaledWidth * mScaledHeight * Float.SIZE_BYTES
-        ).order(
-            ByteOrder.nativeOrder()
-        ).asIntBuffer()
-
         glTexImage2D(
             GL_TEXTURE_2D,
             0, GL_RGB, mScaledWidth, mScaledHeight, 0,
-            GL_RGB, GL_UNSIGNED_BYTE, mTexBuffer
+            GL_RGB, GL_UNSIGNED_BYTE, null
         )
 
         glBindTexture(
@@ -128,6 +123,7 @@ open class PostProcessEffect(
             mScaledWidth,
             mScaledHeight
         )
+
         glBindFramebuffer(
             GL_FRAMEBUFFER,
             mFrameBuffer[0]
@@ -140,7 +136,6 @@ open class PostProcessEffect(
             texture,
             0
         )
-
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER)
             != GL_FRAMEBUFFER_COMPLETE
@@ -165,13 +160,13 @@ open class PostProcessEffect(
             mVertexBuffer
         )
 
+        glActiveTexture(
+            GL_TEXTURE0
+        )
+
         glBindTexture(
             GL_TEXTURE_2D,
             texture
-        )
-
-        glActiveTexture(
-            GL_TEXTURE0
         )
 
         glUniform1i(
