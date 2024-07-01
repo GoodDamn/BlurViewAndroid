@@ -1,51 +1,48 @@
 package good.damn.shaderblur.post_effects.blur
 
-import good.damn.shaderblur.opengl.OpenGLUtils
-
 import android.opengl.GLES20.*
 import android.util.Log
+import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-class HorizontalBlur(
+class VerticalBlur(
     private val mVertexCode: String,
     private val mVertexBuffer: FloatBuffer,
     private val mIndicesBuffer: ByteBuffer,
     private val mScaleFactor: Float,
-    blurRadius: Int
+    blurRadius: Int,
 ) {
 
     companion object {
-        private const val TAG = "HorizontalBlur"
+        private const val TAG = "VerticalBlur"
     }
 
-    private val mFragmentShaderCode = "precision mediump float;" +
-            "uniform vec2 u_res;" +
-            "uniform sampler2D u_tex;" +
-
-            "float gauss(float inp, float aa, float stDevSQ) {" +
-                "return aa * exp(-(inp*inp)/stDevSQ);" +
+    private val mFragmentShaderCode =
+        "precision mediump float;" +
+        "uniform vec2 u_res;" +
+        "uniform sampler2D u_tex;" +
+        "float gauss(float inp, float aa, float stDevSQ) {" +
+            "return aa * exp(-(inp*inp)/stDevSQ);" +
+        "}" +
+        "void main () {" +
+            "float stDev = 8.0;" +
+            "float stDevSQ = 2.0 * stDev * stDev;" +
+            "float aa = 0.398 / stDev;" +
+            "const float rad = $blurRadius.0;" +
+            "vec4 sum = vec4(0.0);" +
+            "float normDistSum = 0.0;" +
+            "float gt;" +
+            "vec2 offset = vec2(gl_FragCoord.x, gl_FragCoord.y - rad);" +
+            "for (float i = -rad; i <= rad;i++) {" +
+                "gt = gauss(i,aa,stDevSQ);" +
+                "normDistSum += gt;" +
+                "offset.y++;" +
+                "sum += texture2D(u_tex, offset/u_res) * gt;" +
             "}" +
-            "void main () {" +
-                "float stDev = 8.0;" +
-                "float stDevSQ = 2.0 * stDev * stDev;" +
-                "float aa = 0.398 / stDev;" +
-                "const float rad = $blurRadius.0;" +
-                "vec4 sum = vec4(0.0);" +
-                "float normDistSum = 0.0;" +
-                "float gt;" +
-                "vec2 offset = vec2(gl_FragCoord.x - rad, gl_FragCoord.y);" +
-                "for (float i = -rad; i <= rad;i++) {" +
-                    "gt = gauss(i,aa,stDevSQ);" +
-                    "normDistSum += gt;" +
-                    "offset.x++;" +
-                    "sum += texture2D(" +
-                        "u_tex," +
-                        "offset / u_res) * gt;" +
-                    "}" +
-                "gl_FragColor = sum / vec4(normDistSum);" +
-           "}"
+            "gl_FragColor = sum / vec4(normDistSum);" +
+        "}"
 
     private var mProgram: Int = 0
 
@@ -101,7 +98,6 @@ class HorizontalBlur(
         width: Int,
         height: Int
     ) {
-
         mScaledWidth = (width * mScaleFactor).toInt()
         mScaledHeight = (height * mScaleFactor).toInt()
 
@@ -134,7 +130,7 @@ class HorizontalBlur(
         texture: Int
     ) {
         glViewport(
-            0,0,
+            0, 0,
             mScaledWidth,
             mScaledHeight
         )
@@ -153,7 +149,8 @@ class HorizontalBlur(
         )
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER)
-            != GL_FRAMEBUFFER_COMPLETE) {
+            != GL_FRAMEBUFFER_COMPLETE
+        ) {
             Log.d(TAG, "onDrawFrame: FRAME_BUFFER_NOT_COMPLETE")
             return
         }

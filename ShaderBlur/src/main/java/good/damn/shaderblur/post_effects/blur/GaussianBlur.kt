@@ -24,15 +24,13 @@ class GaussianBlur(
     var bitmap: Bitmap? = null
 
     private var mHorizontalBlur: HorizontalBlur? = null
+    private var mVerticalBlur: VerticalBlur? = null
 
     private var mfWidth = 1f
     private var mfHeight = 1f
 
     private var miWidth = 1
     private var miHeight = 1
-
-    private var mfSWidth = 1f
-    private var mfSHeight = 1f
 
     private lateinit var mVertexBuffer: FloatBuffer
     private lateinit var mIndicesBuffer: ByteBuffer
@@ -55,7 +53,6 @@ class GaussianBlur(
     private var mAttrPosition = 0
     private var mUniformTexture = 0
     private var mUniformSize = 0
-    private var mUniformSizeScaled = 0
 
     private val mVertexShaderCode =
         "attribute vec4 position;" +
@@ -66,32 +63,11 @@ class GaussianBlur(
     private val mFragmentVerticalShaderCode =
         "precision mediump float;" +
     "uniform vec2 u_res;" +
-    "uniform vec2 u_texRes;" +
     "uniform sampler2D u_tex;" +
-
-    "float gauss(float inp, float aa, float stDevSQ) {" +
-        "return aa * exp(-(inp*inp)/stDevSQ);" +
-    "}" +
     "void main () {" +
-        "float stDev = 8.0;" +
-        "float stDevSQ = 2.0 * stDev * stDev;" +
-        "float aa = 0.398 / stDev;" +
         "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-        "vec2 scaledCoord = vec2(" +
-            "crs.x / u_res.x * u_texRes.x," +
-            "crs.y / u_res.y * u_texRes.y);" +
-        "const float rad = $mBlurRadius.0;" +
-        "vec4 sum = vec4(0.0);" +
-        "float normDistSum = 0.0;" +
-        "float gt;" +
-        "vec2 offset = vec2(scaledCoord.x, scaledCoord.y - rad);" +
-        "for (float i = -rad; i <= rad;i++) {" +
-            "gt = gauss(i,aa,stDevSQ);" +
-            "normDistSum += gt;" +
-            "offset.y++;" +
-            "sum += texture2D(u_tex, offset/u_res) * gt;" +
-        "}" +
-        "gl_FragColor = sum / vec4(normDistSum);" +
+        "vec2 scaled = crs.xy / u_res.xy;" +
+        "gl_FragColor = texture2D(u_tex, scaled * $mScaleFactor);" +
     "}"
 
     override fun onSurfaceCreated(
@@ -139,11 +115,6 @@ class GaussianBlur(
             "u_res"
         )
 
-        mUniformSizeScaled = glGetUniformLocation(
-            mProgram,
-            "u_texRes"
-        )
-
 
         glGenTextures(
             1,
@@ -181,10 +152,20 @@ class GaussianBlur(
             mVertexShaderCode,
             mVertexBuffer,
             mIndicesBuffer,
+            mScaleFactor,
+            mBlurRadius
+        )
+
+        mVerticalBlur = VerticalBlur(
+            mVertexShaderCode,
+            mVertexBuffer,
+            mIndicesBuffer,
+            mScaleFactor,
             mBlurRadius
         )
 
         mHorizontalBlur?.onSurfaceCreated()
+        mVerticalBlur?.onSurfaceCreated()
     }
 
     override fun onSurfaceChanged(
@@ -198,13 +179,14 @@ class GaussianBlur(
         miWidth = width
         miHeight = height
 
-        mfSWidth = width * mScaleFactor
-        mfSHeight = height * mScaleFactor
-
         mHorizontalBlur?.onSurfaceChanged(
             width,
-            height,
-            mScaleFactor
+            height
+        )
+
+        mVerticalBlur?.onSurfaceChanged(
+            width,
+            height
         )
     }
 
@@ -212,10 +194,21 @@ class GaussianBlur(
         gl: GL10?
     ) {
         bitmap?.let {
-            mHorizontalBlur?.onDrawFrame(
+            GLUtils.texImage2D(
+                GL_TEXTURE_2D,
+                0,
                 it,
+                0
+            )
+
+            mHorizontalBlur?.onDrawFrame(
                 mTexture[0]
             )
+
+            /*mVerticalBlur?.onDrawFrame(
+                mTexture[0]
+            )*/
+
         }
 
         glBindFramebuffer(
@@ -260,12 +253,6 @@ class GaussianBlur(
             mfHeight
         )
 
-        glUniform2f(
-            mUniformSizeScaled,
-            mfSWidth,
-            mfSHeight
-        )
-
         glDrawElements(
             GL_TRIANGLES,
             mIndicesBuffer.capacity(),
@@ -282,6 +269,7 @@ class GaussianBlur(
 
     fun clean() {
         mHorizontalBlur?.clean()
+        mVerticalBlur?.clean()
         if (mProgram == 0) {
             return
         }
