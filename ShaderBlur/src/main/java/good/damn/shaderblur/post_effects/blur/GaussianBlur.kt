@@ -9,6 +9,7 @@ import java.nio.FloatBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
+import android.opengl.GLES30
 import android.opengl.GLUtils
 
 class GaussianBlur(
@@ -36,7 +37,6 @@ class GaussianBlur(
     private lateinit var mIndicesBuffer: ByteBuffer
 
     private var mProgram: Int = 0
-    private var mTexture = intArrayOf(1)
 
     private val mIndices: ByteArray = byteArrayOf(
         0, 1, 2,
@@ -116,56 +116,21 @@ class GaussianBlur(
         )
 
 
-        glGenTextures(
-            1,
-            mTexture,
-            0
-        )
-
-        glBindTexture(
-            GL_TEXTURE_2D,
-            mTexture[0]
-        )
-
-        glTexParameteri(
-            GL_TEXTURE_2D,
-            GL_TEXTURE_WRAP_S,
-            GL_CLAMP_TO_EDGE
-        )
-        glTexParameteri(
-            GL_TEXTURE_2D,
-            GL_TEXTURE_WRAP_T,
-            GL_CLAMP_TO_EDGE
-        )
-        glTexParameteri(GL_TEXTURE_2D,
-            GL_TEXTURE_MAG_FILTER,
-            GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D,
-            GL_TEXTURE_MIN_FILTER,
-            GL_LINEAR)
-
-        glActiveTexture(
-            GL_TEXTURE0
-        )
-
         mHorizontalBlur = HorizontalBlur(
             mVertexShaderCode,
-            mVertexBuffer,
-            mIndicesBuffer,
             mScaleFactor,
-            mBlurRadius
+            mBlurRadius,
+            mVertexBuffer,
+            mIndicesBuffer
         )
 
         mVerticalBlur = VerticalBlur(
             mVertexShaderCode,
-            mVertexBuffer,
-            mIndicesBuffer,
+            mBlurRadius,
             mScaleFactor,
-            mBlurRadius
+            mVertexBuffer,
+            mIndicesBuffer
         )
-
-        mHorizontalBlur?.onSurfaceCreated()
-        mVerticalBlur?.onSurfaceCreated()
     }
 
     override fun onSurfaceChanged(
@@ -202,13 +167,11 @@ class GaussianBlur(
             )
 
             mHorizontalBlur?.onDrawFrame(
-                mTexture[0]
+                mHorizontalBlur!!.texture
             )
-
-            /*mVerticalBlur?.onDrawFrame(
-                mTexture[0]
-            )*/
-
+            mVerticalBlur?.onDrawFrame(
+                mHorizontalBlur!!.texture
+            )
         }
 
         glBindFramebuffer(
@@ -239,7 +202,11 @@ class GaussianBlur(
 
         glBindTexture(
             GL_TEXTURE_2D,
-            mTexture[0]
+            mHorizontalBlur!!.texture
+        )
+
+        glActiveTexture(
+            GL_TEXTURE0
         )
 
         glUniform1i(
@@ -263,8 +230,6 @@ class GaussianBlur(
         glDisableVertexAttribArray(
             mAttrPosition
         )
-
-
     }
 
     fun clean() {
