@@ -11,7 +11,8 @@ import javax.microedition.khronos.opengles.GL10
 class BlurRenderer(
     blurRadius: Int,
     scaleFactor: Float,
-    subscaleFactor: Float
+    yMarginTop: Float,
+    yMarginBottom: Float,
 ): GLSurfaceView.Renderer {
 
     companion object {
@@ -21,7 +22,8 @@ class BlurRenderer(
     private var mBlurEffect = GaussianBlur(
         blurRadius,
         scaleFactor,
-        subscaleFactor
+        yMarginTop,
+        yMarginBottom
     )
 
     override fun onSurfaceCreated(
