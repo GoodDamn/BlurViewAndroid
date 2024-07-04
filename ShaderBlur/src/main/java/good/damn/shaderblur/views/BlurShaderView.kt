@@ -17,7 +17,8 @@ class BlurShaderView(
     private val mSourceView: View,
     blurRadius: Int,
     scaleFactor: Float,
-    subscaleFactor: Float
+    yMarginTop: Float,
+    yMarginBottom: Float
 ): GLSurfaceView(
     context
 ), java.lang.Runnable,
@@ -30,7 +31,8 @@ ViewTreeObserver.OnDrawListener {
     private val mBlurRenderer = BlurRenderer(
         blurRadius,
         scaleFactor,
-        subscaleFactor
+        yMarginTop,
+        yMarginBottom
     )
 
     private val mCanvas = Canvas()

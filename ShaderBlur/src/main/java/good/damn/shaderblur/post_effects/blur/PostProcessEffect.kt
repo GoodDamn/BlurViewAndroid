@@ -86,22 +86,17 @@ open class PostProcessEffect(
             texture
         )
 
-        /*glTexParameteri(
-            GL_TEXTURE_2D,
-            GL_TEXTURE_WRAP_S,
-            GL_CLAMP_TO_EDGE
-        )
         glTexParameteri(
             GL_TEXTURE_2D,
-            GL_TEXTURE_WRAP_T,
-            GL_CLAMP_TO_EDGE
-        )*/
-        glTexParameteri(GL_TEXTURE_2D,
             GL_TEXTURE_MAG_FILTER,
-            GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D,
+            GL_LINEAR
+        )
+
+        glTexParameteri(
+            GL_TEXTURE_2D,
             GL_TEXTURE_MIN_FILTER,
-            GL_LINEAR)
+            GL_LINEAR
+        )
 
         glTexImage2D(
             GL_TEXTURE_2D,
@@ -118,11 +113,6 @@ open class PostProcessEffect(
     open fun onDrawFrame(
         texture: Int
     ) {
-        glViewport(
-            0,0,
-            mScaledWidth,
-            mScaledHeight
-        )
 
         glBindFramebuffer(
             GL_FRAMEBUFFER,
@@ -143,6 +133,12 @@ open class PostProcessEffect(
             Log.d(TAG, "onDrawFrame: FRAME_BUFFER_NOT_COMPLETE")
             return
         }
+
+        glViewport(
+            0,0,
+            mScaledWidth,
+            mScaledHeight
+        )
 
         glUseProgram(
             mProgram
@@ -204,12 +200,6 @@ open class PostProcessEffect(
             mTexture,
             0
         )
-
-        /*glDeleteRenderbuffers(
-            1,
-            mRenderBuffer,
-            0
-        )*/
 
         if (mProgram != 0) {
             glDeleteProgram(
