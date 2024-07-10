@@ -33,9 +33,9 @@ class HorizontalBlur(
                 "float gt;" +
                 "vec2 offset = vec2(gl_FragCoord.x - rad, gl_FragCoord.y);" +
                 "for (float i = -rad; i <= rad;i++) {" +
+                    "offset.x++;" +
                     "gt = gauss(i,aa,stDevSQ);" +
                     "normDistSum += gt;" +
-                    "offset.x++;" +
                     "sum += texture2D(" +
                         "u_tex," +
                         "offset / u_res) * gt;" +
