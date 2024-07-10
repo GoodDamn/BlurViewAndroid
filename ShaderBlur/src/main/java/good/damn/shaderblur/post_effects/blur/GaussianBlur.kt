@@ -15,8 +15,6 @@ import android.opengl.GLUtils
 class GaussianBlur(
     private val mBlurRadius: Int,
     private val mScaleFactor: Float,
-    yMarginTop: Float,
-    yMarginBottom: Float,
     shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
@@ -69,7 +67,7 @@ class GaussianBlur(
     "uniform sampler2D u_tex;" +
     "void main () {" +
         "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-        "vec2 scaled = vec2(crs.x/u_res.x, $yMarginTop + crs.y / u_res.y * ${1.0f-yMarginBottom});" +
+        "vec2 scaled = vec2(crs.x/u_res.x, crs.y / u_res.y);" +
         (if (shadeColor == null)
             "gl_FragColor = texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor});"
         else "gl_FragColor = mix(" +

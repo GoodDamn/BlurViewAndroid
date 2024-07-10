@@ -26,15 +26,17 @@ class VerticalBlur(
         "float stDev = 8.0;" +
         "float stDevSQ = 2.0 * stDev * stDev;" +
         "float aa = 0.398 / stDev;" +
-        "const float rad = $blurRadius.0;" +
+        "float rad = $blurRadius.0;" +
         "vec4 sum = vec4(0.0);" +
         "float normDistSum = 0.0;" +
         "float gt;" +
         "vec2 offset = vec2(gl_FragCoord.x, gl_FragCoord.y - rad);" +
         "for (float i = -rad; i <= rad;i++) {" +
+            "if (offset.y >= gl_FragCoord.y) continue;" +
+            "offset.y++;" +
+            "if (offset.y < 0.0) continue;" +
             "gt = gauss(i,aa,stDevSQ);" +
             "normDistSum += gt;" +
-            "offset.y++;" +
             "sum += texture2D(u_tex, offset/u_res) * gt;" +
         "}" +
         "gl_FragColor = sum / vec4(normDistSum);" +
