@@ -52,7 +52,13 @@ class MainActivity : AppCompatActivity() {
             blurRadius = 5,
             scaleFactor = 0.5f,
             yMarginTop = 0.08f,
-            yMarginBottom = 0.185f
+            yMarginBottom = 0.185f,
+            shadeColor = floatArrayOf(
+                1.0f,
+                1.0f,
+                1.0f,
+                0.4f
+            )
         )
 
         val configurationInfo: ConfigurationInfo =

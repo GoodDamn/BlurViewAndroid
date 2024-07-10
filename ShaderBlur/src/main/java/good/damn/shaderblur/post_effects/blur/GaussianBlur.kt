@@ -16,7 +16,8 @@ class GaussianBlur(
     private val mBlurRadius: Int,
     private val mScaleFactor: Float,
     yMarginTop: Float,
-    yMarginBottom: Float
+    yMarginBottom: Float,
+    shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
     companion object {
@@ -69,7 +70,12 @@ class GaussianBlur(
     "void main () {" +
         "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
         "vec2 scaled = vec2(crs.x/u_res.x, $yMarginTop + crs.y / u_res.y * ${1.0f-yMarginBottom});" +
-        "gl_FragColor = texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor});" +
+        (if (shadeColor == null)
+            "gl_FragColor = texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor});"
+        else "gl_FragColor = mix(" +
+            "texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor})," +
+            "vec4(${shadeColor[0]}, ${shadeColor[1]}, ${shadeColor[2]}, 1.0)," +
+            "${shadeColor[3]});") +
     "}"
 
     override fun onSurfaceCreated(

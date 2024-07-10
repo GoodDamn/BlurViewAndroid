@@ -13,17 +13,21 @@ class BlurRenderer(
     scaleFactor: Float,
     yMarginTop: Float,
     yMarginBottom: Float,
+    shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
     companion object {
         private const val TAG = "BlurRenderer"
     }
 
+    var isFrameDrawn = true
+
     private var mBlurEffect = GaussianBlur(
         blurRadius,
         scaleFactor,
         yMarginTop,
-        yMarginBottom
+        yMarginBottom,
+        shadeColor
     )
 
     override fun onSurfaceCreated(
@@ -64,6 +68,7 @@ class BlurRenderer(
     override fun onDrawFrame(
         gl: GL10?
     ) {
+        isFrameDrawn = false
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         glClearColor(
             1.0f,
@@ -74,6 +79,7 @@ class BlurRenderer(
         mBlurEffect.onDrawFrame(
             gl
         )
+        isFrameDrawn = true
     }
 
     fun requestRender(
