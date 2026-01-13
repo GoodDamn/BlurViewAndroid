@@ -2,7 +2,6 @@ package good.damn.shaderblur.post_effects.blur
 
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
-import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -11,6 +10,10 @@ import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
 import android.opengl.GLES30
 import android.opengl.GLUtils
+import good.damn.shaderblur.utils.SBUtilsBuffer
+import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
+import good.damn.shaderblur.vertex.SBEnumArrayVertexConfiguration
+import good.damn.shaderblur.vertex.SBPointerAttribute
 
 class GaussianBlur(
     private val mBlurRadius: Int,
@@ -18,15 +21,7 @@ class GaussianBlur(
     shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
-    companion object {
-        private const val STRIDE = 8
-        private const val SIZE = 2
-    }
-
     var bitmap: Bitmap? = null
-
-    private var mHorizontalBlur: HorizontalBlur? = null
-    private var mVerticalBlur: VerticalBlur? = null
 
     private var mfWidth = 1f
     private var mfHeight = 1f
@@ -34,24 +29,8 @@ class GaussianBlur(
     private var miWidth = 1
     private var miHeight = 1
 
-    private lateinit var mVertexBuffer: FloatBuffer
-    private lateinit var mIndicesBuffer: ByteBuffer
-
     private var mProgram: Int = 0
 
-    private val mIndices: ByteArray = byteArrayOf(
-        0, 1, 2,
-        0, 2, 3
-    )
-
-    private val mSquareCoords: FloatArray = floatArrayOf(
-        -1.0f, 1.0f,  // top left
-        -1.0f, -1.0f, // bottom left
-        1.0f, -1.0f,  // bottom right
-        1.0f, 1.0f,   // top right
-    )
-
-    private var mAttrPosition = 0
     private var mUniformTexture = 0
     private var mUniformSize = 0
 
@@ -76,25 +55,33 @@ class GaussianBlur(
             "${shadeColor[3]});") +
     "}"
 
+    private val mVertexArrayQuad = SBArrayVertexConfigurator(
+        SBEnumArrayVertexConfiguration.BYTE
+    )
+
     override fun onSurfaceCreated(
         gl: GL10?,
         config: EGLConfig?
     ) {
-
-        val byteBuffer =
-            ByteBuffer.allocateDirect(mSquareCoords.size * 4)
-        byteBuffer.order(ByteOrder.nativeOrder())
-        mVertexBuffer = byteBuffer.asFloatBuffer()
-        mVertexBuffer.put(mSquareCoords)
-        mVertexBuffer.position(0)
-
-        val drawByteBuffer: ByteBuffer =
-            ByteBuffer.allocateDirect(mIndices.size * 2)
-        drawByteBuffer.order(ByteOrder.nativeOrder())
-        mIndicesBuffer = drawByteBuffer
-        mIndicesBuffer.put(mIndices)
-        mIndicesBuffer.position(0)
-
+        mVertexArrayQuad.configure(
+            SBUtilsBuffer.createFloat(
+                floatArrayOf(
+                    -1.0f, 1.0f,  // top left
+                    -1.0f, -1.0f, // bottom left
+                    1.0f, -1.0f,  // bottom right
+                    1.0f, 1.0f,   // top right
+                )
+            ),
+            SBUtilsBuffer.createByte(
+                byteArrayOf(
+                    0, 1, 2,
+                    0, 2, 3
+                )
+            ),
+            SBPointerAttribute.Builder()
+                .pointPosition2()
+                .build()
+        )
 
         mProgram = OpenGLUtils.createProgram(
             mVertexShaderCode,
@@ -103,12 +90,6 @@ class GaussianBlur(
 
         glLinkProgram(
             mProgram
-        )
-
-
-        mAttrPosition = glGetAttribLocation(
-            mProgram,
-            "position"
         )
 
         mUniformTexture = glGetUniformLocation(
@@ -126,16 +107,14 @@ class GaussianBlur(
             mVertexShaderCode,
             mScaleFactor,
             mBlurRadius,
-            mVertexBuffer,
-            mIndicesBuffer
+            mVertexArrayQuad
         )
 
         mVerticalBlur = VerticalBlur(
             mVertexShaderCode,
             mBlurRadius,
             mScaleFactor,
-            mVertexBuffer,
-            mIndicesBuffer
+            mVertexArrayQuad
         )
     }
 

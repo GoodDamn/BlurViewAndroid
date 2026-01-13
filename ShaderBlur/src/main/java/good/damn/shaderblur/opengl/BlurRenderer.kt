@@ -20,7 +20,7 @@ class BlurRenderer(
 
     var isFrameDrawn = true
 
-    private var mBlurEffect = GaussianBlur(
+    private val mBlurEffect = GaussianBlur(
         blurRadius,
         scaleFactor,
         shadeColor

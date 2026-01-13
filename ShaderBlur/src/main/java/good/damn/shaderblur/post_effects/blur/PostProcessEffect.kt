@@ -1,10 +1,14 @@
 package good.damn.shaderblur.post_effects.blur
 
+import android.opengl.GLES20
 import android.opengl.GLES20.*
 import android.opengl.GLES30
 import android.util.Log
 import good.damn.shaderblur.SBFramebuffer
 import good.damn.shaderblur.opengl.OpenGLUtils
+import good.damn.shaderblur.texture.SBTexture
+import good.damn.shaderblur.texture.SBTextureAttachment
+import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -13,25 +17,21 @@ open class PostProcessEffect(
     vertexCode: String,
     fragmentCode: String,
     private val mScaleFactor: Float,
-    private val mVertexBuffer: FloatBuffer,
-    private val mIndicesBuffer: ByteBuffer,
+    private val vertexArray: SBArrayVertexConfigurator
 ) {
 
     companion object {
         private const val TAG = "PostProcessEffect"
     }
 
-    var texture: Int = 0
-        get() = mTexture[0]
-        private set
-
     private val mFramebuffer = SBFramebuffer()
-
-    private val mTexture = intArrayOf(1)
+    private val mTexture = SBTextureAttachment(
+        GL_COLOR_ATTACHMENT0,
+        SBTexture()
+    )
 
     private var mProgram: Int = 0
 
-    private var mAttrPosition: Int = 0
     private var mUniformSize: Int = 0
     private var mUniformTexture: Int = 0
 
@@ -63,13 +63,8 @@ open class PostProcessEffect(
             "u_res"
         )
 
+        mTexture.texture.generate()
         mFramebuffer.generate()
-
-        glGenTextures(
-            1,
-            mTexture,
-            0
-        )
     }
 
     open fun onSurfaceChanged(
@@ -78,55 +73,21 @@ open class PostProcessEffect(
     ) {
         mScaledWidth = (width * mScaleFactor).toInt()
         mScaledHeight = (height * mScaleFactor).toInt()
-
-        glBindTexture(
-            GL_TEXTURE_2D,
-            texture
+        mTexture.glSetupTexture(
+            width,
+            height
         )
-
-        glTexParameteri(
-            GL_TEXTURE_2D,
-            GL_TEXTURE_MAG_FILTER,
-            GL_LINEAR
-        )
-
-        glTexParameteri(
-            GL_TEXTURE_2D,
-            GL_TEXTURE_MIN_FILTER,
-            GL_LINEAR
-        )
-
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0, GL_RGB, mScaledWidth, mScaledHeight, 0,
-            GL_RGB, GL_UNSIGNED_BYTE, null
-        )
-
-        glBindTexture(
-            GL_TEXTURE_2D,
-            0
-        )
+        mFramebuffer.apply {
+            bind()
+            attachTexture(
+                mTexture
+            )
+            unbind()
+        }
     }
 
-    open fun onDrawFrame(
-        texture: Int
-    ) {
-
-       mFramebuffer.bind()
-       glFramebufferTexture2D(
-           GL_FRAMEBUFFER,
-           GL_COLOR_ATTACHMENT0,
-           GL_TEXTURE_2D,
-           texture,
-           0
-       )
-
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER)
-            != GL_FRAMEBUFFER_COMPLETE
-        ) {
-            Log.d(TAG, "onDrawFrame: FRAME_BUFFER_NOT_COMPLETE")
-            return
-        }
+    open fun onDrawFrame() {
+        mFramebuffer.bind()
 
         glViewport(
             0,0,
@@ -184,12 +145,7 @@ open class PostProcessEffect(
 
     open fun clean() {
         mFramebuffer.delete()
-
-        glDeleteTextures(
-            1,
-            mTexture,
-            0
-        )
+        mTexture.texture.delete()
 
         if (mProgram != 0) {
             glDeleteProgram(

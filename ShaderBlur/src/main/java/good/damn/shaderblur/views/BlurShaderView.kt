@@ -65,7 +65,6 @@ class BlurShaderView(
             height,
             Bitmap.Config.ARGB_8888
         )
-
         mBlurRenderer.requestRender(
             mInputBitmap
         )
