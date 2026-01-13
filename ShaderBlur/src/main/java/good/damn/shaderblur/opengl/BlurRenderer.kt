@@ -1,7 +1,11 @@
 package good.damn.shaderblur.opengl
 
 import android.graphics.Bitmap
-import android.opengl.GLES20.*
+import android.opengl.GLES20.GL_COLOR_BUFFER_BIT
+import android.opengl.GLES20.GL_DEPTH_BUFFER_BIT
+import android.opengl.GLES20.glClear
+import android.opengl.GLES20.glClearColor
+import android.opengl.GLES20.glViewport
 import android.opengl.GLSurfaceView
 import android.util.Log
 import good.damn.shaderblur.post_effects.blur.GaussianBlur
@@ -13,10 +17,6 @@ class BlurRenderer(
     scaleFactor: Float,
     shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
-
-    companion object {
-        private const val TAG = "BlurRenderer"
-    }
 
     var isFrameDrawn = true
 
@@ -30,11 +30,6 @@ class BlurRenderer(
         gl: GL10?,
         p1: EGLConfig?
     ) {
-        glClear(
-            GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT
-        )
-
-        Log.d(TAG, "onSurfaceCreated: ")
         mBlurEffect.onSurfaceCreated(
             gl,
             p1
@@ -46,8 +41,7 @@ class BlurRenderer(
         width: Int,
         height: Int
     ) {
-        Log.d(TAG, "onSurfaceChanged: $width $height")
-        gl?.glViewport(
+        glViewport(
             0,
             0,
             width,

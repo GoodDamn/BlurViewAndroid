@@ -21,8 +21,7 @@ class BlurShaderView(
     shadeColor: FloatArray? = null
 ): GLSurfaceView(
     context
-), java.lang.Runnable,
-ViewTreeObserver.OnDrawListener {
+), ViewTreeObserver.OnDrawListener {
 
     companion object {
         private const val TAG = "BlurShaderView"
@@ -50,8 +49,17 @@ ViewTreeObserver.OnDrawListener {
     }
 
 
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        super.onLayout(changed, left, top, right, bottom)
+    override fun onLayout(
+        changed: Boolean,
+        left: Int, top: Int,
+        right: Int, bottom: Int
+    ) {
+        super.onLayout(
+            changed,
+            left, top,
+            right, bottom
+        )
+
         mInputBitmap = Bitmap.createBitmap(
             width,
             height,
@@ -64,7 +72,7 @@ ViewTreeObserver.OnDrawListener {
         mIsLaidOut = true
     }
 
-    override fun run() {
+    override fun onDraw() {
         if (!mBlurRenderer.isFrameDrawn || !mIsLaidOut) {
             return
         }
@@ -83,10 +91,6 @@ ViewTreeObserver.OnDrawListener {
         )
         mBlurRenderer.isFrameDrawn = false
         requestRender()
-    }
-
-    override fun onDraw() {
-        run()
     }
 
     fun startRenderLoop() {
