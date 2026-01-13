@@ -3,6 +3,7 @@ package good.damn.shaderblur.post_effects.blur
 import android.opengl.GLES20.*
 import android.opengl.GLES30
 import android.util.Log
+import good.damn.shaderblur.SBFramebuffer
 import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -24,7 +25,8 @@ open class PostProcessEffect(
         get() = mTexture[0]
         private set
 
-    private val mFrameBuffer = intArrayOf(1)
+    private val mFramebuffer = SBFramebuffer()
+
     private val mTexture = intArrayOf(1)
 
     private var mProgram: Int = 0
@@ -61,11 +63,7 @@ open class PostProcessEffect(
             "u_res"
         )
 
-        glGenFramebuffers(
-            1,
-            mFrameBuffer,
-            0
-        )
+        mFramebuffer.generate()
 
         glGenTextures(
             1,
@@ -114,18 +112,14 @@ open class PostProcessEffect(
         texture: Int
     ) {
 
-        glBindFramebuffer(
-            GL_FRAMEBUFFER,
-            mFrameBuffer[0]
-        )
-
-        glFramebufferTexture2D(
-            GL_FRAMEBUFFER,
-            GL_COLOR_ATTACHMENT0,
-            GL_TEXTURE_2D,
-            texture,
-            0
-        )
+       mFramebuffer.bind()
+       glFramebufferTexture2D(
+           GL_FRAMEBUFFER,
+           GL_COLOR_ATTACHMENT0,
+           GL_TEXTURE_2D,
+           texture,
+           0
+       )
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER)
             != GL_FRAMEBUFFER_COMPLETE
@@ -189,11 +183,7 @@ open class PostProcessEffect(
     }
 
     open fun clean() {
-        glDeleteFramebuffers(
-            1,
-            mFrameBuffer,
-            0
-        )
+        mFramebuffer.delete()
 
         glDeleteTextures(
             1,
