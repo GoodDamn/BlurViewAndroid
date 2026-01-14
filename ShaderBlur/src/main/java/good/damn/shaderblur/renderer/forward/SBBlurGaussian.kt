@@ -1,15 +1,14 @@
-package good.damn.shaderblur.post_effects.blur
+package good.damn.shaderblur.renderer.forward
 
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
-import android.opengl.GLES30
 import good.damn.shaderblur.drawers.SBDrawerScreenSize
 import good.damn.shaderblur.drawers.SBDrawerTexture
 import good.damn.shaderblur.drawers.SBDrawerVertexArray
-import good.damn.shaderblur.post.PostProcessEffect
+import good.damn.shaderblur.renderer.post.SBPostProcess
 import good.damn.shaderblur.shaders.SBBinderAttribute
 import good.damn.shaderblur.shaders.SBShaderTexture
 import good.damn.shaderblur.texture.SBTexture
@@ -20,7 +19,7 @@ import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
 import good.damn.shaderblur.vertex.SBEnumArrayVertexConfiguration
 import good.damn.shaderblur.vertex.SBPointerAttribute
 
-class GaussianBlur(
+class SBBlurGaussian(
     blurRadius: Int,
     private val mScaleFactor: Float,
     shadeColor: FloatArray? = null
@@ -159,7 +158,7 @@ class GaussianBlur(
         SBTexture()
     )
 
-    private val mBlurHorizontal = PostProcessEffect(
+    private val mBlurHorizontal = SBPostProcess(
         mTextureHorizontal,
         mDrawerVertexArray,
         drawerInputTexture = SBDrawerTexture(
@@ -168,7 +167,7 @@ class GaussianBlur(
         )
     )
 
-    private val mBlurVertical = PostProcessEffect(
+    private val mBlurVertical = SBPostProcess(
         mTextureVertical,
         mDrawerVertexArray,
         drawerInputTexture = SBDrawerTexture(

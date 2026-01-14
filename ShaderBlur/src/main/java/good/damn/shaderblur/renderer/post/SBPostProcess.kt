@@ -1,6 +1,5 @@
-package good.damn.shaderblur.post
+package good.damn.shaderblur.renderer.post
 
-import android.opengl.GLES20.*
 import android.opengl.GLES30
 import good.damn.shaderblur.SBFramebuffer
 import good.damn.shaderblur.drawers.SBDrawerScreenSize
@@ -10,7 +9,7 @@ import good.damn.shaderblur.shaders.SBBinderAttribute
 import good.damn.shaderblur.shaders.SBShaderTexture
 import good.damn.shaderblur.texture.SBTextureAttachment
 
-class PostProcessEffect(
+class SBPostProcess(
     private val outputTexture: SBTextureAttachment,
     private val drawerQuad: SBDrawerVertexArray,
     private val drawerInputTexture: SBDrawerTexture

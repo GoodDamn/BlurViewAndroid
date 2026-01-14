@@ -4,16 +4,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.opengl.GLSurfaceView
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
-import android.widget.ScrollView
-import good.damn.shaderblur.opengl.BlurRenderer
-import kotlinx.coroutines.Runnable
+import good.damn.shaderblur.renderer.forward.SBRendererBlur
 
-class BlurShaderView(
+class SBViewBlurShading(
     context: Context,
     private val mSourceView: View,
     blurRadius: Int,
@@ -27,7 +22,7 @@ class BlurShaderView(
         private const val TAG = "BlurShaderView"
     }
 
-    private val mBlurRenderer = BlurRenderer(
+    private val mBlurRenderer = SBRendererBlur(
         blurRadius,
         scaleFactor,
         shadeColor

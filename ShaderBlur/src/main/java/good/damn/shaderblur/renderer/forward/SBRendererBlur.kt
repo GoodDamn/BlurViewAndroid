@@ -1,4 +1,4 @@
-package good.damn.shaderblur.opengl
+package good.damn.shaderblur.renderer.forward
 
 import android.graphics.Bitmap
 import android.opengl.GLES20.GL_COLOR_BUFFER_BIT
@@ -7,12 +7,10 @@ import android.opengl.GLES20.glClear
 import android.opengl.GLES20.glClearColor
 import android.opengl.GLES20.glViewport
 import android.opengl.GLSurfaceView
-import android.util.Log
-import good.damn.shaderblur.post_effects.blur.GaussianBlur
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class BlurRenderer(
+class SBRendererBlur(
     blurRadius: Int,
     scaleFactor: Float,
     shadeColor: FloatArray? = null
@@ -20,7 +18,7 @@ class BlurRenderer(
 
     var isFrameDrawn = true
 
-    private val mBlurEffect = GaussianBlur(
+    private val mBlurEffect = SBBlurGaussian(
         blurRadius,
         scaleFactor,
         shadeColor

@@ -14,15 +14,15 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import good.damn.shaderblur.views.BlurShaderView
+import good.damn.shaderblur.views.SBViewBlurShading
 import java.util.Random
 
-class MainActivity : AppCompatActivity() {
+class APActivityMain : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
     }
-    private lateinit var mSurfaceBlurView: BlurShaderView;
+    private lateinit var mSurfaceBlurView: SBViewBlurShading;
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(
@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
 
         val random = Random()
 
-        mSurfaceBlurView = BlurShaderView(
+        mSurfaceBlurView = SBViewBlurShading(
             this,
             scrollView,
             blurRadius = 5,
