@@ -8,7 +8,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-class VerticalBlur(
+/*class VerticalBlur(
     vertexCode: String,
     blurRadius: Int,
     scaleFactor: Float,
@@ -51,4 +51,4 @@ class VerticalBlur(
     }
 
 
-}
+}*/

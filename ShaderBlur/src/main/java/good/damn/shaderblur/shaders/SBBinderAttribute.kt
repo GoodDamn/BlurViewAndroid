@@ -20,7 +20,6 @@ class SBBinderAttribute private constructor(
     }
 
     class Builder {
-
         private val list = LinkedList<
             SBMBinderLocation
         >()
@@ -30,16 +29,6 @@ class SBBinderAttribute private constructor(
                 SBMBinderLocation(
                     "position",
                     0
-                )
-            )
-            return this
-        }
-
-        fun bindTextureCoordinates(): Builder {
-            list.add(
-                SBMBinderLocation(
-                    "texCoord",
-                    1
                 )
             )
             return this

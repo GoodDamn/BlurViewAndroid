@@ -1,14 +1,11 @@
 package good.damn.shaderblur.post_effects.blur
 
-import good.damn.shaderblur.opengl.OpenGLUtils
-
 import android.opengl.GLES20.*
-import android.util.Log
+import good.damn.shaderblur.post.PostProcessEffect
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-class HorizontalBlur(
+/*class HorizontalBlur(
     vertexCode: String,
     scaleFactor: Float,
     blurRadius: Int,
@@ -49,4 +46,4 @@ class HorizontalBlur(
     companion object {
         private const val TAG = "HorizontalBlur"
     }
-}
+}*/

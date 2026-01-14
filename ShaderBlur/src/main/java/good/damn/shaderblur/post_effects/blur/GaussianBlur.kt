@@ -2,14 +2,16 @@ package good.damn.shaderblur.post_effects.blur
 
 import android.graphics.Bitmap
 import android.opengl.GLSurfaceView
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
-import android.opengl.GLES30
 import android.opengl.GLUtils
+import good.damn.shaderblur.drawers.SBDrawerVertexArray
+import good.damn.shaderblur.post.PostProcessEffect
+import good.damn.shaderblur.shaders.SBBinderAttribute
+import good.damn.shaderblur.shaders.SBShaderTexture
+import good.damn.shaderblur.texture.SBTexture
+import good.damn.shaderblur.texture.SBTextureAttachment
 import good.damn.shaderblur.utils.SBUtilsBuffer
 import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
 import good.damn.shaderblur.vertex.SBEnumArrayVertexConfiguration
@@ -23,41 +25,61 @@ class GaussianBlur(
 
     var bitmap: Bitmap? = null
 
-    private var mfWidth = 1f
-    private var mfHeight = 1f
-
-    private var miWidth = 1
-    private var miHeight = 1
-
-    private var mProgram: Int = 0
-
-    private var mUniformTexture = 0
-    private var mUniformSize = 0
-
     private val mVertexShaderCode =
         "attribute vec4 position;" +
                 "void main() {" +
                 "gl_Position = position;" +
                 "}"
 
-    private val mFragmentVerticalShaderCode =
-        "precision mediump float;" +
-    "uniform vec2 u_res;" +
-    "uniform sampler2D u_tex;" +
-    "void main () {" +
-        "vec2 crs = vec2(gl_FragCoord.x, u_res.y-gl_FragCoord.y);" +
-        "vec2 scaled = vec2(crs.x/u_res.x, crs.y / u_res.y);" +
-        (if (shadeColor == null)
-            "gl_FragColor = texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor});"
-        else "gl_FragColor = mix(" +
-            "texture2D(u_tex, scaled * ${mScaleFactor * mScaleFactor})," +
-            "vec4(${shadeColor[0]}, ${shadeColor[1]}, ${shadeColor[2]}, 1.0)," +
-            "${shadeColor[3]});") +
-    "}"
+    private val mFragmentCodeOutput = """
+        #version 310 es
+        precision mediump float;
+        
+        out vec4 FragColor;
+        
+        uniform vec2 uScreenSize;
+        uniform sampler2D uTexture;
+        void main () {
+            vec2 scaled = vec2(
+                gl_FragCoord.x / uScreenSize.x,
+                gl_FragCoord.y / uScreenSize.y
+            );
+            
+            ${generateFragColor(
+                shadeColor
+            )}
+        }
+    """.trimIndent()
 
     private val mVertexArrayQuad = SBArrayVertexConfigurator(
         SBEnumArrayVertexConfiguration.BYTE
     )
+
+    private val mDrawerVertexArray = SBDrawerVertexArray(
+        mVertexArrayQuad
+    )
+
+    private val mTextureHorizontal = SBTextureAttachment(
+        GL_COLOR_ATTACHMENT0,
+        SBTexture()
+    )
+
+    private val mTextureVertical = SBTextureAttachment(
+        GL_COLOR_ATTACHMENT0,
+        SBTexture()
+    )
+
+    private val mBlurHorizontal = PostProcessEffect(
+        mTextureHorizontal,
+        mDrawerVertexArray
+    )
+
+    private val mBlurVertical = PostProcessEffect(
+        mTextureVertical,
+        mDrawerVertexArray
+    )
+
+    private val mShaderOutput = SBShaderTexture()
 
     override fun onSurfaceCreated(
         gl: GL10?,
@@ -83,38 +105,15 @@ class GaussianBlur(
                 .build()
         )
 
-        mProgram = OpenGLUtils.createProgram(
+        mBlurHorizontal.create()
+        mBlurVertical.create()
+
+        mShaderOutput.setupFromSource(
             mVertexShaderCode,
-            mFragmentVerticalShaderCode
-        )
-
-        glLinkProgram(
-            mProgram
-        )
-
-        mUniformTexture = glGetUniformLocation(
-            mProgram,
-            "u_tex"
-        )
-
-        mUniformSize = glGetUniformLocation(
-            mProgram,
-            "u_res"
-        )
-
-
-        mHorizontalBlur = HorizontalBlur(
-            mVertexShaderCode,
-            mScaleFactor,
-            mBlurRadius,
-            mVertexArrayQuad
-        )
-
-        mVerticalBlur = VerticalBlur(
-            mVertexShaderCode,
-            mBlurRadius,
-            mScaleFactor,
-            mVertexArrayQuad
+            mFragmentCodeOutput,
+            SBBinderAttribute.Builder()
+                .bindPosition()
+                .build()
         )
     }
 
@@ -123,18 +122,20 @@ class GaussianBlur(
         width: Int,
         height: Int
     ) {
-        mfWidth = width.toFloat()
-        mfHeight = height.toFloat()
+        val scaledWidth = (
+            width * mScaleFactor
+        ).toInt()
 
-        miWidth = width
-        miHeight = height
+        val scaledHeight = (
+            height * mScaleFactor
+        ).toInt()
 
-        mHorizontalBlur?.onSurfaceChanged(
-            width,
-            height
+        mBlurHorizontal.changeBounds(
+            scaledWidth,
+            scaledHeight
         )
 
-        mVerticalBlur?.onSurfaceChanged(
+        mBlurVertical.changeBounds(
             width,
             height
         )
@@ -150,13 +151,8 @@ class GaussianBlur(
                 it,
                 0
             )
-
-            mHorizontalBlur?.onDrawFrame(
-                mHorizontalBlur!!.texture
-            )
-            mVerticalBlur?.onDrawFrame(
-                mHorizontalBlur!!.texture
-            )
+            mBlurHorizontal.draw()
+            mBlurVertical.draw()
         }
 
         glBindFramebuffer(
@@ -169,12 +165,7 @@ class GaussianBlur(
             miWidth, miHeight
         )
 
-        glUseProgram(
-            mProgram
-        )
-        glEnableVertexAttribArray(
-            mAttrPosition
-        )
+        mShaderOutput.use()
 
         glVertexAttribPointer(
             mAttrPosition,
@@ -205,26 +196,28 @@ class GaussianBlur(
             mfHeight
         )
 
-        glDrawElements(
-            GL_TRIANGLES,
-            mIndicesBuffer.capacity(),
-            GL_UNSIGNED_BYTE,
-            mIndicesBuffer
-        )
-
-        glDisableVertexAttribArray(
-            mAttrPosition
-        )
+        mDrawerVertexArray.draw()
     }
 
     fun clean() {
-        mHorizontalBlur?.clean()
-        mVerticalBlur?.clean()
-        if (mProgram == 0) {
-            return
-        }
-        glDeleteProgram(
-            mProgram
-        )
+        mBlurHorizontal.clean()
+        mBlurVertical.clean()
+        mShaderOutput.delete()
     }
+
+    private inline fun generateFragColor(
+        shadeColor: FloatArray?
+    ) = if (
+        shadeColor == null
+    ) "FragColor = texture(uTexture, scaled);"
+    else """
+        FragColor = mix(
+            texture(
+                uTexture,
+                scaled
+            ),
+            vec4(${shadeColor[0]}, ${shadeColor[1]}, ${shadeColor[2]}, 1.0),
+            ${shadeColor[3]}
+        );
+    """.trimIndent()
 }

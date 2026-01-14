@@ -19,6 +19,12 @@ abstract class SBShaderBase
         )
     }
 
+    override fun delete() {
+        glDeleteProgram(
+            mProgram
+        )
+    }
+
     fun compileFromSource(
         srcVertex: String,
         srcFragment: String,
