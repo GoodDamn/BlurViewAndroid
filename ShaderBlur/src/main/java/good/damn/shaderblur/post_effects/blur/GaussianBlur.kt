@@ -88,13 +88,13 @@ class GaussianBlur(
                 offset.x++;
                 gt = gauss(i,aa,stDevSQ);
                 normDistSum += gt;
-                sum += texture2D(
+                sum += texture(
                     uTexture,
                     offset / uScreenSize
                 ) * gt;
             }
             
-            outputColor = sum / vec4(normDistSum);
+            outputColor = sum.xyz / vec3(normDistSum);
         }
     """.trimIndent()
 
@@ -127,13 +127,13 @@ class GaussianBlur(
                 offset.y++;
                 gt = gauss(i,aa,stDevSQ);
                 normDistSum += gt;
-                sum += texture2D(
+                sum += texture(
                     uTexture,
                     offset / uScreenSize
                 ) * gt;
             }
             
-            outputColor = sum / vec4(normDistSum);
+            outputColor = sum.xyz / vec3(normDistSum);
         }
     """.trimIndent()
 
@@ -145,7 +145,7 @@ class GaussianBlur(
         mVertexArrayQuad
     )
 
-    /*private val mTextureHorizontal = SBTextureAttachment(
+    private val mTextureHorizontal = SBTextureAttachment(
         GL_COLOR_ATTACHMENT0,
         SBTexture()
     )
@@ -153,16 +153,16 @@ class GaussianBlur(
     private val mTextureVertical = SBTextureAttachment(
         GL_COLOR_ATTACHMENT0,
         SBTexture()
-    )*/
+    )
 
     private val mTextureInput = SBTextureBitmap(
         SBTexture()
     )
 
-    /*private val mBlurHorizontal = PostProcessEffect(
+    private val mBlurHorizontal = PostProcessEffect(
         mTextureHorizontal,
         mDrawerVertexArray,
-        SBDrawerTexture(
+        drawerInputTexture = SBDrawerTexture(
             GL_TEXTURE0,
             mTextureInput.texture
         )
@@ -171,17 +171,17 @@ class GaussianBlur(
     private val mBlurVertical = PostProcessEffect(
         mTextureVertical,
         mDrawerVertexArray,
-        SBDrawerTexture(
+        drawerInputTexture = SBDrawerTexture(
             GL_TEXTURE0,
             mTextureHorizontal.texture
         )
-    )*/
+    )
 
     private val mShaderOutput = SBShaderTexture()
     private val mDrawerScreenSize = SBDrawerScreenSize()
     private val mDrawerOutputTexture = SBDrawerTexture(
-        GLES30.GL_TEXTURE0,
-        mTextureInput.texture
+        GL_TEXTURE0,
+        mTextureVertical.texture
     )
 
     override fun onSurfaceCreated(
@@ -211,7 +211,7 @@ class GaussianBlur(
         mTextureInput.texture.generate()
         mTextureInput.setupFiltering()
 
-        /*mBlurHorizontal.create(
+        mBlurHorizontal.create(
             mVertexShaderCode,
             mFragmentCodeHorizontal
         )
@@ -219,7 +219,7 @@ class GaussianBlur(
         mBlurVertical.create(
             mVertexShaderCode,
             mFragmentCodeVertical
-        )*/
+        )
 
         mShaderOutput.setupFromSource(
             mVertexShaderCode,
@@ -246,15 +246,15 @@ class GaussianBlur(
         mDrawerScreenSize.width = width.toFloat()
         mDrawerScreenSize.height = height.toFloat()
 
-        /*mBlurHorizontal.changeBounds(
+        mBlurHorizontal.changeBounds(
             scaledWidth,
             scaledHeight
         )
 
         mBlurVertical.changeBounds(
-            width,
-            height
-        )*/
+            scaledWidth,
+            scaledHeight
+        )
     }
 
     override fun onDrawFrame(
@@ -266,20 +266,13 @@ class GaussianBlur(
         mTextureInput.texImage(
             bitmap
         )
-        /*mBlurHorizontal.draw()
-        mBlurVertical.draw()*/
+        mBlurHorizontal.draw()
+        mBlurVertical.draw()
 
         glBindFramebuffer(
             GL_FRAMEBUFFER,
             0
         )
-
-        /*mDrawerScreenSize.apply {
-            glViewport(
-                0,0,
-                width, height
-            )
-        }*/
 
         mShaderOutput.apply {
             use()
@@ -297,8 +290,8 @@ class GaussianBlur(
     }
 
     fun clean() {
-        /*mBlurHorizontal.clean()
-        mBlurVertical.clean()*/
+        mBlurHorizontal.clean()
+        mBlurVertical.clean()
         mShaderOutput.delete()
     }
 

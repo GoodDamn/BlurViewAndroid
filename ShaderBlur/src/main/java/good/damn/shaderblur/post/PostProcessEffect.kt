@@ -73,14 +73,6 @@ class PostProcessEffect(
     fun draw() {
         mFramebuffer.bind()
 
-        /*mDrawerScreenSize.apply {
-            glViewport(
-                0,0,
-                width,
-                height
-            )
-        }*/
-
         mShader.use()
 
         drawerInputTexture.draw(
