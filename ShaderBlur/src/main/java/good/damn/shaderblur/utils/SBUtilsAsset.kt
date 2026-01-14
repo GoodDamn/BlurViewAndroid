@@ -10,7 +10,7 @@ object SBUtilsAsset {
         "UTF-8"
     )
 
-    @JvmStatic
+    /*@JvmStatic
     fun loadString(
         file: File
     ): String {
@@ -28,9 +28,9 @@ object SBUtilsAsset {
             b,
             CHARSET
         )
-    }
+    }*/
 
-    @JvmStatic
+    /*@JvmStatic
     fun loadString(
         path: String
     ): String {
@@ -42,5 +42,5 @@ object SBUtilsAsset {
         return loadString(
             pubFile
         )
-    }
+    }*/
 }

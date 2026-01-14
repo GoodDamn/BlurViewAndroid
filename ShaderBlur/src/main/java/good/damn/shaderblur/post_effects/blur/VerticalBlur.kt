@@ -3,7 +3,6 @@ package good.damn.shaderblur.post_effects.blur
 import android.hardware.camera2.params.Face
 import android.opengl.GLES20.*
 import android.util.Log
-import good.damn.shaderblur.opengl.OpenGLUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer

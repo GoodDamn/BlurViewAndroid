@@ -8,7 +8,7 @@ import good.damn.shaderblur.utils.SBUtilsShader
 abstract class SBShaderBase
 : SBIShader {
     companion object {
-        private const val TAG = "MGShaderBase"
+        private const val TAG = "SBShaderBase"
     }
 
     private var mProgram = 0
@@ -47,14 +47,14 @@ abstract class SBShaderBase
         pathFragment: String,
         binderAttribute: SBBinderAttribute
     ): Int {
-        mProgram = SBUtilsShader.createProgramFromAssets(
+        /*mProgram = SBUtilsShader.createProgramFromAssets(
             pathVertex,
             pathFragment
         )
 
         binderAttribute.bindAttributes(
             mProgram
-        )
+        )*/
 
         return 0
     }

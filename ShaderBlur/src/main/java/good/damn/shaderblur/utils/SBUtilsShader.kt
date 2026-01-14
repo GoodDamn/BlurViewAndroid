@@ -13,7 +13,7 @@ import android.util.Log
 
 object SBUtilsShader {
 
-    @JvmStatic
+    /*@JvmStatic
     fun createProgramFromAssets(
         vertexPath: String,
         fragmentPath: String
@@ -26,7 +26,7 @@ object SBUtilsShader {
                 fragmentPath
             )
         )
-    }
+    }*/
 
     @JvmStatic
     fun createProgram(
@@ -83,9 +83,9 @@ object SBUtilsShader {
             0
         )
 
-        Log.d("TAG", "createShader: STATUS: ${status[0]} TYPE: $type;")
+        Log.d("SBUtilsShader", "createShader: STATUS: ${status[0]} TYPE: $type;")
         if (status[0] == GLES20.GL_FALSE) {
-            Log.d("TAG", "createShader: NOT COMPILED: ${GLES30.glGetShaderInfoLog(shader)}")
+            Log.d("SBUtilsShader", "createShader: NOT COMPILED: ${GLES30.glGetShaderInfoLog(shader)}")
             return -1
         }
 

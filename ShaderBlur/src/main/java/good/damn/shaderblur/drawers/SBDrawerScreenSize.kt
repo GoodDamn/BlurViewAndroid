@@ -7,13 +7,13 @@ import good.damn.shaderblur.texture.SBTexture
 
 class SBDrawerScreenSize {
 
-    var width = 0
-    var height = 0
+    var width = 0f
+    var height = 0f
 
     fun draw(
         shader: SBIShaderScreenSize
     ) {
-        GLES30.glUniform2i(
+        GLES30.glUniform2f(
             shader.uniformScreenSize,
             width,
             height

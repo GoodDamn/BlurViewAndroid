@@ -10,6 +10,7 @@ import android.opengl.GLES20.glCheckFramebufferStatus
 import android.opengl.GLES20.glDeleteFramebuffers
 import android.opengl.GLES20.glFramebufferTexture2D
 import android.opengl.GLES20.glGenFramebuffers
+import android.opengl.GLES30
 import android.util.Log
 import good.damn.shaderblur.texture.SBTextureAttachment
 

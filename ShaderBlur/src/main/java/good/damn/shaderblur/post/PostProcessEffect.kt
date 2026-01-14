@@ -11,18 +11,14 @@ import good.damn.shaderblur.shaders.SBShaderTexture
 import good.damn.shaderblur.texture.SBTextureAttachment
 
 class PostProcessEffect(
-    private val texture: SBTextureAttachment,
-    private val drawerQuad: SBDrawerVertexArray
+    private val outputTexture: SBTextureAttachment,
+    private val drawerQuad: SBDrawerVertexArray,
+    private val drawerInputTexture: SBDrawerTexture
 ) {
 
     private val mFramebuffer = SBFramebuffer()
 
     private val mShader = SBShaderTexture()
-
-    private val mDrawerTexture = SBDrawerTexture(
-        GLES30.GL_TEXTURE0,
-        texture.texture
-    )
 
     private val mDrawerScreenSize = SBDrawerScreenSize()
 
@@ -30,7 +26,7 @@ class PostProcessEffect(
         vertexCode: String,
         fragmentCode: String
     ) {
-        mShader.setup(
+        mShader.setupFromSource(
             vertexCode,
             fragmentCode,
             SBBinderAttribute.Builder()
@@ -38,7 +34,7 @@ class PostProcessEffect(
                 .build()
         )
 
-        texture.texture.generate()
+        outputTexture.texture.generate()
         mFramebuffer.generate()
     }
 
@@ -46,7 +42,7 @@ class PostProcessEffect(
         width: Int,
         height: Int
     ) {
-        texture.glSetupTexture(
+        outputTexture.glSetupTexture(
             width,
             height
         )
@@ -54,31 +50,40 @@ class PostProcessEffect(
         mFramebuffer.apply {
             bind()
             attachTexture(
-                texture
+                outputTexture
             )
+            intArrayOf(
+                outputTexture.attachment
+            ).apply {
+                GLES30.glDrawBuffers(
+                    size,
+                    this,
+                    0
+                )
+            }
             unbind()
         }
 
         mDrawerScreenSize.let {
-            it.width = width
-            it.height = height
+            it.width = width.toFloat()
+            it.height = height.toFloat()
         }
     }
 
     fun draw() {
         mFramebuffer.bind()
 
-        mDrawerScreenSize.apply {
+        /*mDrawerScreenSize.apply {
             glViewport(
                 0,0,
                 width,
                 height
             )
-        }
+        }*/
 
         mShader.use()
 
-        mDrawerTexture.draw(
+        drawerInputTexture.draw(
             mShader
         )
 
@@ -87,14 +92,14 @@ class PostProcessEffect(
         )
 
         drawerQuad.draw()
-        mDrawerTexture.unbind(
+        drawerInputTexture.unbind(
             mShader
         )
     }
 
     fun clean() {
         mFramebuffer.delete()
-        texture.texture.delete()
+        outputTexture.texture.delete()
         mShader.delete()
     }
 }
