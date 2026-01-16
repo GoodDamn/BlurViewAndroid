@@ -144,12 +144,26 @@ class SBBlurGaussian(
         mVertexArrayQuad
     )
 
+    private val mShaderHorizontal = SBShaderTexture()
+    private val mShaderVertical = SBShaderTexture()
+    private val mShaderOutput = SBShaderTexture()
+
     private val mTextureHorizontal = SBTextureAttachment(
         GL_COLOR_ATTACHMENT0,
         SBTexture()
     )
 
     private val mTextureVertical = SBTextureAttachment(
+        GL_COLOR_ATTACHMENT0,
+        SBTexture()
+    )
+
+    private val mTextureHorizontal2 = SBTextureAttachment(
+        GL_COLOR_ATTACHMENT0,
+        SBTexture()
+    )
+
+    private val mTextureVertical2 = SBTextureAttachment(
         GL_COLOR_ATTACHMENT0,
         SBTexture()
     )
@@ -164,7 +178,8 @@ class SBBlurGaussian(
         drawerInputTexture = SBDrawerTexture(
             GL_TEXTURE0,
             mTextureInput.texture
-        )
+        ),
+        mShaderHorizontal
     )
 
     private val mBlurVertical = SBPostProcess(
@@ -173,14 +188,34 @@ class SBBlurGaussian(
         drawerInputTexture = SBDrawerTexture(
             GL_TEXTURE0,
             mTextureHorizontal.texture
-        )
+        ),
+        mShaderVertical
     )
 
-    private val mShaderOutput = SBShaderTexture()
+    private val mBlurHorizontal2 = SBPostProcess(
+        mTextureHorizontal2,
+        mDrawerVertexArray,
+        drawerInputTexture = SBDrawerTexture(
+            GL_TEXTURE0,
+            mTextureVertical.texture
+        ),
+        mShaderHorizontal
+    )
+
+    private val mBlurVertical2 = SBPostProcess(
+        mTextureVertical2,
+        mDrawerVertexArray,
+        drawerInputTexture = SBDrawerTexture(
+            GL_TEXTURE0,
+            mTextureHorizontal2.texture
+        ),
+        mShaderVertical
+    )
+
     private val mDrawerScreenSize = SBDrawerScreenSize()
     private val mDrawerOutputTexture = SBDrawerTexture(
         GL_TEXTURE0,
-        mTextureVertical.texture
+        mTextureVertical2.texture
     )
 
     override fun onSurfaceCreated(
@@ -210,23 +245,32 @@ class SBBlurGaussian(
         mTextureInput.texture.generate()
         mTextureInput.setupFiltering()
 
-        mBlurHorizontal.create(
-            mVertexShaderCode,
-            mFragmentCodeHorizontal
-        )
+        SBBinderAttribute.Builder()
+            .bindPosition()
+            .build().apply {
+                mShaderHorizontal.setupFromSource(
+                    mVertexShaderCode,
+                    mFragmentCodeHorizontal,
+                    this
+                )
 
-        mBlurVertical.create(
-            mVertexShaderCode,
-            mFragmentCodeVertical
-        )
+                mShaderVertical.setupFromSource(
+                    mVertexShaderCode,
+                    mFragmentCodeVertical,
+                    this
+                )
 
-        mShaderOutput.setupFromSource(
-            mVertexShaderCode,
-            mFragmentCodeOutput,
-            SBBinderAttribute.Builder()
-                .bindPosition()
-                .build()
-        )
+                mShaderOutput.setupFromSource(
+                    mVertexShaderCode,
+                    mFragmentCodeOutput,
+                    this
+                )
+            }
+
+        mBlurHorizontal.create()
+        mBlurVertical.create()
+        mBlurHorizontal2.create()
+        mBlurVertical2.create()
     }
 
     override fun onSurfaceChanged(
@@ -254,6 +298,16 @@ class SBBlurGaussian(
             scaledWidth,
             scaledHeight
         )
+
+        mBlurHorizontal2.changeBounds(
+            scaledWidth,
+            scaledHeight
+        )
+
+        mBlurVertical2.changeBounds(
+            scaledWidth,
+            scaledHeight
+        )
     }
 
     override fun onDrawFrame(
@@ -267,6 +321,8 @@ class SBBlurGaussian(
         )
         mBlurHorizontal.draw()
         mBlurVertical.draw()
+        mBlurHorizontal2.draw()
+        mBlurVertical2.draw()
 
         glBindFramebuffer(
             GL_FRAMEBUFFER,
@@ -291,6 +347,8 @@ class SBBlurGaussian(
     fun clean() {
         mBlurHorizontal.clean()
         mBlurVertical.clean()
+        mBlurHorizontal2.clean()
+        mBlurVertical2.clean()
         mShaderOutput.delete()
     }
 

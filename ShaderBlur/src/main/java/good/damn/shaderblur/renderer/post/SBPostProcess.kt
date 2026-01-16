@@ -12,27 +12,13 @@ import good.damn.shaderblur.texture.SBTextureAttachment
 class SBPostProcess(
     private val outputTexture: SBTextureAttachment,
     private val drawerQuad: SBDrawerVertexArray,
-    private val drawerInputTexture: SBDrawerTexture
+    private val drawerInputTexture: SBDrawerTexture,
+    private val shader: SBShaderTexture
 ) {
-
     private val mFramebuffer = SBFramebuffer()
-
-    private val mShader = SBShaderTexture()
-
     private val mDrawerScreenSize = SBDrawerScreenSize()
 
-    fun create(
-        vertexCode: String,
-        fragmentCode: String
-    ) {
-        mShader.setupFromSource(
-            vertexCode,
-            fragmentCode,
-            SBBinderAttribute.Builder()
-                .bindPosition()
-                .build()
-        )
-
+    fun create() {
         outputTexture.texture.generate()
         mFramebuffer.generate()
     }
@@ -72,25 +58,25 @@ class SBPostProcess(
     fun draw() {
         mFramebuffer.bind()
 
-        mShader.use()
+        shader.use()
 
         drawerInputTexture.draw(
-            mShader
+            shader
         )
 
         mDrawerScreenSize.draw(
-            mShader
+            shader
         )
 
         drawerQuad.draw()
         drawerInputTexture.unbind(
-            mShader
+            shader
         )
     }
 
     fun clean() {
         mFramebuffer.delete()
         outputTexture.texture.delete()
-        mShader.delete()
+        shader.delete()
     }
 }

@@ -50,13 +50,7 @@ class APActivityMain : AppCompatActivity() {
             this,
             scrollView,
             blurRadius = 5,
-            scaleFactor = 0.5f,
-            shadeColor = floatArrayOf(
-                1.0f,
-                1.0f,
-                1.0f,
-                0.4f
-            )
+            scaleFactor = 0.4f
         )
 
         val configurationInfo: ConfigurationInfo =
