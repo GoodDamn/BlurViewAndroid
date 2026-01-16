@@ -16,10 +16,31 @@ class SBBlurIterations private constructor(
     val lastTexture: SBTexture
 ) {
 
+    fun create() {
+        list.forEach {
+            it.postProcessHorizontal.create()
+            it.postProcessVertical.create()
+        }
+    }
+
     fun draw() {
         list.forEach {
             it.postProcessHorizontal.draw()
             it.postProcessVertical.draw()
+        }
+    }
+
+    fun delete() {
+        list.forEach {
+            it.postProcessHorizontal.apply {
+                deleteFramebuffer()
+                deleteTexture()
+            }
+
+            it.postProcessVertical.apply {
+                deleteFramebuffer()
+                deleteTexture()
+            }
         }
     }
 
@@ -54,7 +75,7 @@ class SBBlurIterations private constructor(
 
         fun addIteration(
             scaleFactor: Float
-        ) {
+        ) = apply {
             val textureHorizontal = SBTexture()
             val postProcessHorizontal = SBPostProcess(
                 SBTextureAttachment(

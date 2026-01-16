@@ -5,14 +5,13 @@ import android.opengl.GLSurfaceView
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
+import good.damn.shaderblur.builders.SBBlurIterations
 import good.damn.shaderblur.drawers.SBDrawerScreenSize
 import good.damn.shaderblur.drawers.SBDrawerTexture
 import good.damn.shaderblur.drawers.SBDrawerVertexArray
-import good.damn.shaderblur.renderer.post.SBPostProcess
 import good.damn.shaderblur.shaders.SBBinderAttribute
 import good.damn.shaderblur.shaders.SBShaderTexture
 import good.damn.shaderblur.texture.SBTexture
-import good.damn.shaderblur.texture.SBTextureAttachment
 import good.damn.shaderblur.texture.SBTextureBitmap
 import good.damn.shaderblur.utils.SBUtilsBuffer
 import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
@@ -148,74 +147,26 @@ class SBBlurGaussian(
     private val mShaderVertical = SBShaderTexture()
     private val mShaderOutput = SBShaderTexture()
 
-    private val mTextureHorizontal = SBTextureAttachment(
-        GL_COLOR_ATTACHMENT0,
-        SBTexture()
-    )
-
-    private val mTextureVertical = SBTextureAttachment(
-        GL_COLOR_ATTACHMENT0,
-        SBTexture()
-    )
-
-    private val mTextureHorizontal2 = SBTextureAttachment(
-        GL_COLOR_ATTACHMENT0,
-        SBTexture()
-    )
-
-    private val mTextureVertical2 = SBTextureAttachment(
-        GL_COLOR_ATTACHMENT0,
-        SBTexture()
-    )
-
     private val mTextureInput = SBTextureBitmap(
         SBTexture()
     )
 
-    private val mBlurHorizontal = SBPostProcess(
-        mTextureHorizontal,
+    private val mBlurIterations = SBBlurIterations.Builder(
+        mShaderHorizontal,
+        mShaderVertical,
         mDrawerVertexArray,
-        drawerInputTexture = SBDrawerTexture(
-            GL_TEXTURE0,
-            mTextureInput.texture
-        ),
-        mShaderHorizontal
-    )
+        mTextureInput.texture
+    ).addIteration(
+        0.5f
+    ).addIteration(
+        0.25f
+    ).build()
 
-    private val mBlurVertical = SBPostProcess(
-        mTextureVertical,
-        mDrawerVertexArray,
-        drawerInputTexture = SBDrawerTexture(
-            GL_TEXTURE0,
-            mTextureHorizontal.texture
-        ),
-        mShaderVertical
-    )
-
-    private val mBlurHorizontal2 = SBPostProcess(
-        mTextureHorizontal2,
-        mDrawerVertexArray,
-        drawerInputTexture = SBDrawerTexture(
-            GL_TEXTURE0,
-            mTextureVertical.texture
-        ),
-        mShaderHorizontal
-    )
-
-    private val mBlurVertical2 = SBPostProcess(
-        mTextureVertical2,
-        mDrawerVertexArray,
-        drawerInputTexture = SBDrawerTexture(
-            GL_TEXTURE0,
-            mTextureHorizontal2.texture
-        ),
-        mShaderVertical
-    )
 
     private val mDrawerScreenSize = SBDrawerScreenSize()
     private val mDrawerOutputTexture = SBDrawerTexture(
         GL_TEXTURE0,
-        mTextureVertical2.texture
+        mBlurIterations.lastTexture
     )
 
     override fun onSurfaceCreated(
@@ -267,10 +218,7 @@ class SBBlurGaussian(
                 )
             }
 
-        mBlurHorizontal.create()
-        mBlurVertical.create()
-        mBlurHorizontal2.create()
-        mBlurVertical2.create()
+        mBlurIterations.create()
     }
 
     override fun onSurfaceChanged(
@@ -278,35 +226,13 @@ class SBBlurGaussian(
         width: Int,
         height: Int
     ) {
-        val scaledWidth = (
-            width * mScaleFactor
-        ).toInt()
+        mDrawerScreenSize.let {
+            it.width = width.toFloat()
+            it.height = height.toFloat()
+        }
 
-        val scaledHeight = (
-            height * mScaleFactor
-        ).toInt()
-
-        mDrawerScreenSize.width = width.toFloat()
-        mDrawerScreenSize.height = height.toFloat()
-
-        mBlurHorizontal.changeBounds(
-            scaledWidth,
-            scaledHeight
-        )
-
-        mBlurVertical.changeBounds(
-            scaledWidth,
-            scaledHeight
-        )
-
-        mBlurHorizontal2.changeBounds(
-            scaledWidth,
-            scaledHeight
-        )
-
-        mBlurVertical2.changeBounds(
-            scaledWidth,
-            scaledHeight
+        mBlurIterations.changeBounds(
+            width, height
         )
     }
 
@@ -319,10 +245,8 @@ class SBBlurGaussian(
         mTextureInput.texImage(
             bitmap
         )
-        mBlurHorizontal.draw()
-        mBlurVertical.draw()
-        mBlurHorizontal2.draw()
-        mBlurVertical2.draw()
+
+        mBlurIterations.draw()
 
         glBindFramebuffer(
             GL_FRAMEBUFFER,
@@ -345,10 +269,9 @@ class SBBlurGaussian(
     }
 
     fun clean() {
-        mBlurHorizontal.clean()
-        mBlurVertical.clean()
-        mBlurHorizontal2.clean()
-        mBlurVertical2.clean()
+        mBlurIterations.delete()
+        mShaderHorizontal.delete()
+        mShaderVertical.delete()
         mShaderOutput.delete()
     }
 

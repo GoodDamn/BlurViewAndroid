@@ -74,9 +74,11 @@ class SBPostProcess(
         )
     }
 
-    fun clean() {
+    fun deleteFramebuffer() {
         mFramebuffer.delete()
+    }
+
+    fun deleteTexture() {
         outputTexture.texture.delete()
-        shader.delete()
     }
 }
