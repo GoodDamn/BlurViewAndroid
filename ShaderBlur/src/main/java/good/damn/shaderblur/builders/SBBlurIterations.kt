@@ -9,7 +9,7 @@ import good.damn.shaderblur.texture.SBTexture
 import good.damn.shaderblur.texture.SBTextureAttachment
 import java.util.LinkedList
 
-class SBBlurIterations private constructor(
+internal class SBBlurIterations private constructor(
     private val list: LinkedList<
         SBMBlurIteration
     >,

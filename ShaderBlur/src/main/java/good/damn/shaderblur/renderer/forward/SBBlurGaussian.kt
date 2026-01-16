@@ -5,6 +5,7 @@ import android.opengl.GLSurfaceView
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import android.opengl.GLES20.*
+import good.damn.shaderblur.builders.SBBlur
 import good.damn.shaderblur.builders.SBBlurIterations
 import good.damn.shaderblur.drawers.SBDrawerScreenSize
 import good.damn.shaderblur.drawers.SBDrawerTexture
@@ -20,7 +21,7 @@ import good.damn.shaderblur.vertex.SBPointerAttribute
 
 class SBBlurGaussian(
     blurRadius: Int,
-    private val mScaleFactor: Float,
+    blurIterations: SBBlur,
     shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
@@ -156,11 +157,14 @@ class SBBlurGaussian(
         mShaderVertical,
         mDrawerVertexArray,
         mTextureInput.texture
-    ).addIteration(
-        0.5f
-    ).addIteration(
-        0.25f
-    ).build()
+    ).run {
+        blurIterations.list.forEach {
+            addIteration(
+                it.scaleFactor
+            )
+        }
+        return@run build()
+    }
 
 
     private val mDrawerScreenSize = SBDrawerScreenSize()

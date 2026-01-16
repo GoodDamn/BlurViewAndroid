@@ -14,15 +14,14 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import good.damn.shaderblur.builders.SBBlur
 import good.damn.shaderblur.views.SBViewBlurShading
 import java.util.Random
 
-class APActivityMain : AppCompatActivity() {
+class APActivityMain
+: AppCompatActivity() {
 
-    companion object {
-        private const val TAG = "MainActivity"
-    }
-    private lateinit var mSurfaceBlurView: SBViewBlurShading;
+    private lateinit var mSurfaceBlurView: SBViewBlurShading
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(
@@ -49,8 +48,15 @@ class APActivityMain : AppCompatActivity() {
         mSurfaceBlurView = SBViewBlurShading(
             this,
             scrollView,
-            blurRadius = 5,
-            scaleFactor = 0.4f
+            blurRadius = 2,
+            SBBlur.Builder()
+                .addIteration(
+                    0.5f
+                ).addIteration(
+                    0.25f
+                ).addIteration(
+                    0.1f
+                ).build()
         )
 
         val configurationInfo: ConfigurationInfo =
@@ -87,17 +93,26 @@ class APActivityMain : AppCompatActivity() {
                 random.nextInt(100)+155,
                 random.nextInt(100)+155));
 
-            contentLayout.addView(textView, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-            contentLayout.addView(button,FrameLayout.LayoutParams.MATCH_PARENT, 180);
+            contentLayout.addView(
+                textView,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+
+            contentLayout.addView(
+                button,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                180
+            )
         }
 
         Handler(Looper.getMainLooper()).postDelayed({
             rootLayout.addView(
                 mSurfaceBlurView,
                 -1,
-                150
-            );
-        },1500);
+                (75 * context.resources.displayMetrics.density).toInt()
+            )
+        },1500)
 
 
         scrollView.addView(

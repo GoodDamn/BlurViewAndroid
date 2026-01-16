@@ -6,25 +6,22 @@ import android.graphics.Canvas
 import android.opengl.GLSurfaceView
 import android.view.View
 import android.view.ViewTreeObserver
+import good.damn.shaderblur.builders.SBBlur
 import good.damn.shaderblur.renderer.forward.SBRendererBlur
 
 class SBViewBlurShading(
     context: Context,
-    private val mSourceView: View,
+    private val sourceView: View,
     blurRadius: Int,
-    scaleFactor: Float,
+    blur: SBBlur,
     shadeColor: FloatArray? = null
 ): GLSurfaceView(
     context
 ), ViewTreeObserver.OnDrawListener {
 
-    companion object {
-        private const val TAG = "BlurShaderView"
-    }
-
     private val mBlurRenderer = SBRendererBlur(
         blurRadius,
-        scaleFactor,
+        blur,
         shadeColor
     )
 
@@ -60,9 +57,11 @@ class SBViewBlurShading(
             height,
             Bitmap.Config.ARGB_8888
         )
+
         mBlurRenderer.requestRender(
             mInputBitmap
         )
+
         mIsLaidOut = true
     }
 
@@ -74,10 +73,10 @@ class SBViewBlurShading(
             mInputBitmap
         )
         mCanvas.translate(
-            -mSourceView.scrollX.toFloat(),
-            -mSourceView.scrollY.toFloat()
+            -sourceView.scrollX.toFloat(),
+            -sourceView.scrollY.toFloat()
         )
-        mSourceView.draw(
+        sourceView.draw(
             mCanvas
         )
         mBlurRenderer.requestRender(
@@ -88,16 +87,16 @@ class SBViewBlurShading(
     }
 
     fun startRenderLoop() {
-        mSourceView.viewTreeObserver.removeOnDrawListener(
+        sourceView.viewTreeObserver.removeOnDrawListener(
             this
         )
-        mSourceView.viewTreeObserver.addOnDrawListener(
+        sourceView.viewTreeObserver.addOnDrawListener(
             this
         )
     }
 
     fun stopRenderLoop() {
-        mSourceView.viewTreeObserver.removeOnDrawListener(
+        sourceView.viewTreeObserver.removeOnDrawListener(
             this
         )
     }
