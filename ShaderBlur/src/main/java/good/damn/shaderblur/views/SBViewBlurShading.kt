@@ -28,11 +28,11 @@ class SBViewBlurShading(
     private var mIsLaidOut = false
 
     private val mCanvas = Canvas()
-    private lateinit var mInputBitmap: Bitmap
+    private var mInputBitmap: Bitmap? = null
 
 
     init {
-        setEGLContextClientVersion(2)
+        setEGLContextClientVersion(3)
         setRenderer(
             mBlurRenderer
         )
@@ -52,15 +52,17 @@ class SBViewBlurShading(
             right, bottom
         )
 
+        recycleBitmap()
+
         mInputBitmap = Bitmap.createBitmap(
             width,
             height,
             Bitmap.Config.ARGB_8888
-        )
-
-        mBlurRenderer.requestRender(
-            mInputBitmap
-        )
+        ).apply {
+            mBlurRenderer.requestRender(
+                this
+            )
+        }
 
         mIsLaidOut = true
     }
@@ -69,8 +71,11 @@ class SBViewBlurShading(
         if (!mBlurRenderer.isFrameDrawn || !mIsLaidOut) {
             return
         }
+        val inputBitmap = mInputBitmap
+            ?: return
+
         mCanvas.setBitmap(
-            mInputBitmap
+            inputBitmap
         )
         mCanvas.translate(
             -sourceView.scrollX.toFloat(),
@@ -80,7 +85,7 @@ class SBViewBlurShading(
             mCanvas
         )
         mBlurRenderer.requestRender(
-            mInputBitmap
+            inputBitmap
         )
         mBlurRenderer.isFrameDrawn = false
         requestRender()
@@ -102,6 +107,15 @@ class SBViewBlurShading(
     }
 
     fun clean() {
+        recycleBitmap()
         mBlurRenderer.clean()
+    }
+
+    private inline fun recycleBitmap() {
+        mInputBitmap?.apply {
+            if (!isRecycled) {
+                recycle()
+            }
+        }
     }
 }
