@@ -18,6 +18,9 @@ import good.damn.shaderblur.utils.SBUtilsBuffer
 import good.damn.shaderblur.vertex.SBArrayVertexConfigurator
 import good.damn.shaderblur.vertex.SBEnumArrayVertexConfiguration
 import good.damn.shaderblur.vertex.SBPointerAttribute
+import kotlin.math.PI
+import kotlin.math.exp
+import kotlin.math.sqrt
 
 class SBBlurGaussian(
     blurRadius: Int,
@@ -26,6 +29,35 @@ class SBBlurGaussian(
 ): GLSurfaceView.Renderer {
 
     var bitmap: Bitmap? = null
+
+    private val mKernelStr = (
+        blurRadius * 2 + 1
+    ).run {
+            val strBuilder = StringBuilder()
+            val stDev2 = 2f * blurRadius * blurRadius
+            val leftExp = 1.0f / sqrt(stDev2 * PI)
+
+            for (i in -blurRadius until blurRadius) {
+                strBuilder.append(
+                    leftExp * exp(-(i * i).toFloat() / stDev2)
+                )
+
+                strBuilder.append(
+                    ", "
+                )
+            }
+
+            strBuilder.append(
+                leftExp * exp(-(blurRadius * blurRadius).toFloat() / stDev2)
+            )
+
+            return@run """
+                #define KERNEL_SIZE $this
+                const float kernel[KERNEL_SIZE] = float[KERNEL_SIZE](
+                    $strBuilder
+                );
+            """.trimIndent()
+    }
 
     private val mVertexShaderCode = """
         #version 310 es
@@ -60,32 +92,26 @@ class SBBlurGaussian(
 
     private val mFragmentCodeHorizontal = """
         #version 310 es
-        precision mediump float;
+        precision highp float;
+        
+        $mKernelStr
         
         layout(location = 0) out vec3 outputColor;
         uniform vec2 uScreenSize;
         uniform sampler2D uTexture;
 
-        float gauss(float inp, float aa, float stDevSQ) {
-            return aa * exp(-(inp*inp)/stDevSQ);
-        }
-        
         void main () {
-            float stDev = 8.0;
-            float stDevSQ = 2.0 * stDev * stDev;
-            float aa = 0.398 / stDev;
-            const float rad = $blurRadius.0;
             vec4 sum = vec4(0.0);
             float normDistSum = 0.0;
-            float gt;
+            
             vec2 offset = vec2(
-                gl_FragCoord.x - rad,
+                gl_FragCoord.x - $blurRadius.0,
                 gl_FragCoord.y
             );
             
-            for (float i = -rad; i <= rad;i++) {
+            for (int i = 0; i < KERNEL_SIZE; i++) {
                 offset.x++;
-                gt = gauss(i,aa,stDevSQ);
+                float gt = kernel[i];
                 normDistSum += gt;
                 sum += texture(
                     uTexture,
@@ -99,32 +125,25 @@ class SBBlurGaussian(
 
     private val mFragmentCodeVertical = """
         #version 310 es
-        precision mediump float;
+        precision highp float;
+        
+        $mKernelStr
         
         layout(location = 0) out vec3 outputColor;
         uniform vec2 uScreenSize;
         uniform sampler2D uTexture;
-
-        float gauss(float inp, float aa, float stDevSQ) {
-            return aa * exp(-(inp*inp)/stDevSQ);
-        }
         
         void main () {
-            float stDev = 8.0;
-            float stDevSQ = 2.0 * stDev * stDev;
-            float aa = 0.398 / stDev;
-            const float rad = $blurRadius.0;
             vec4 sum = vec4(0.0);
             float normDistSum = 0.0;
-            float gt;
             vec2 offset = vec2(
                 gl_FragCoord.x,
-                gl_FragCoord.y - rad
+                gl_FragCoord.y - $blurRadius.0
             );
             
-            for (float i = -rad; i <= rad;i++) {
+            for (int i = 0; i < KERNEL_SIZE; i++) {
                 offset.y++;
-                gt = gauss(i,aa,stDevSQ);
+                float gt = kernel[i];
                 normDistSum += gt;
                 sum += texture(
                     uTexture,
