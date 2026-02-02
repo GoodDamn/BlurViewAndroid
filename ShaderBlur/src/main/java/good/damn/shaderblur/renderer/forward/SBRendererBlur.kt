@@ -7,12 +7,13 @@ import android.opengl.GLES20.glClear
 import android.opengl.GLES20.glClearColor
 import android.opengl.GLES20.glViewport
 import android.opengl.GLSurfaceView
+import good.damn.shaderblur.builders.SBBlur
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 class SBRendererBlur(
     blurRadius: Int,
-    scaleFactor: Float,
+    blur: SBBlur,
     shadeColor: FloatArray? = null
 ): GLSurfaceView.Renderer {
 
@@ -20,7 +21,7 @@ class SBRendererBlur(
 
     private val mBlurEffect = SBBlurGaussian(
         blurRadius,
-        scaleFactor,
+        blur,
         shadeColor
     )
 

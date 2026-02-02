@@ -1,13 +1,20 @@
 package good.damn.shaderblur.texture
 
+import android.opengl.GLES20.GL_CLAMP_TO_EDGE
 import android.opengl.GLES20.GL_LINEAR
+import android.opengl.GLES20.GL_MIRRORED_REPEAT
+import android.opengl.GLES20.GL_NEAREST
 import android.opengl.GLES20.GL_RGB
+import android.opengl.GLES20.GL_TEXTURE
 import android.opengl.GLES20.GL_TEXTURE_2D
 import android.opengl.GLES20.GL_TEXTURE_MAG_FILTER
 import android.opengl.GLES20.GL_TEXTURE_MIN_FILTER
+import android.opengl.GLES20.GL_TEXTURE_WRAP_S
+import android.opengl.GLES20.GL_TEXTURE_WRAP_T
 import android.opengl.GLES20.GL_UNSIGNED_BYTE
 import android.opengl.GLES20.glTexImage2D
 import android.opengl.GLES20.glTexParameteri
+import android.opengl.GLES30
 
 class SBTextureAttachment(
     val attachment: Int,
@@ -28,6 +35,18 @@ class SBTextureAttachment(
             GL_TEXTURE_2D,
             GL_TEXTURE_MIN_FILTER,
             GL_LINEAR
+        )
+
+        glTexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_S, // x
+            GL_CLAMP_TO_EDGE
+        )
+
+        glTexParameteri(
+            GL_TEXTURE_2D,
+            GL_TEXTURE_WRAP_T, // y
+            GL_CLAMP_TO_EDGE
         )
 
         glTexImage2D(

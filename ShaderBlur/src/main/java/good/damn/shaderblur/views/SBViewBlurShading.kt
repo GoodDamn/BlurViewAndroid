@@ -6,36 +6,33 @@ import android.graphics.Canvas
 import android.opengl.GLSurfaceView
 import android.view.View
 import android.view.ViewTreeObserver
+import good.damn.shaderblur.builders.SBBlur
 import good.damn.shaderblur.renderer.forward.SBRendererBlur
 
 class SBViewBlurShading(
     context: Context,
-    private val mSourceView: View,
+    private val sourceView: View,
     blurRadius: Int,
-    scaleFactor: Float,
+    blur: SBBlur,
     shadeColor: FloatArray? = null
 ): GLSurfaceView(
     context
 ), ViewTreeObserver.OnDrawListener {
 
-    companion object {
-        private const val TAG = "BlurShaderView"
-    }
-
     private val mBlurRenderer = SBRendererBlur(
         blurRadius,
-        scaleFactor,
+        blur,
         shadeColor
     )
 
     private var mIsLaidOut = false
 
     private val mCanvas = Canvas()
-    private lateinit var mInputBitmap: Bitmap
+    private var mInputBitmap: Bitmap? = null
 
 
     init {
-        setEGLContextClientVersion(2)
+        setEGLContextClientVersion(3)
         setRenderer(
             mBlurRenderer
         )
@@ -55,14 +52,18 @@ class SBViewBlurShading(
             right, bottom
         )
 
+        recycleBitmap()
+
         mInputBitmap = Bitmap.createBitmap(
             width,
             height,
             Bitmap.Config.ARGB_8888
-        )
-        mBlurRenderer.requestRender(
-            mInputBitmap
-        )
+        ).apply {
+            mBlurRenderer.requestRender(
+                this
+            )
+        }
+
         mIsLaidOut = true
     }
 
@@ -70,39 +71,51 @@ class SBViewBlurShading(
         if (!mBlurRenderer.isFrameDrawn || !mIsLaidOut) {
             return
         }
+        val inputBitmap = mInputBitmap
+            ?: return
+
         mCanvas.setBitmap(
-            mInputBitmap
+            inputBitmap
         )
         mCanvas.translate(
-            -mSourceView.scrollX.toFloat(),
-            -mSourceView.scrollY.toFloat()
+            -sourceView.scrollX.toFloat(),
+            -sourceView.scrollY.toFloat()
         )
-        mSourceView.draw(
+        sourceView.draw(
             mCanvas
         )
         mBlurRenderer.requestRender(
-            mInputBitmap
+            inputBitmap
         )
         mBlurRenderer.isFrameDrawn = false
         requestRender()
     }
 
     fun startRenderLoop() {
-        mSourceView.viewTreeObserver.removeOnDrawListener(
+        sourceView.viewTreeObserver.removeOnDrawListener(
             this
         )
-        mSourceView.viewTreeObserver.addOnDrawListener(
+        sourceView.viewTreeObserver.addOnDrawListener(
             this
         )
     }
 
     fun stopRenderLoop() {
-        mSourceView.viewTreeObserver.removeOnDrawListener(
+        sourceView.viewTreeObserver.removeOnDrawListener(
             this
         )
     }
 
     fun clean() {
+        recycleBitmap()
         mBlurRenderer.clean()
+    }
+
+    private inline fun recycleBitmap() {
+        mInputBitmap?.apply {
+            if (!isRecycled) {
+                recycle()
+            }
+        }
     }
 }
